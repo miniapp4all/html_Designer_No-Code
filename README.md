@@ -30,5 +30,36 @@ No complex setups, no cloud subscription fees—just a fast, self-hosted layout 
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/miniapp4all/html_Designer_No-Code.git](https://github.com/miniapp4all/html_Designer_No-Code.git)
+   git clone https://github.com/miniapp4all/html_Designer_No-Code.git
    cd html_Designer_No-Code
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install PySide6 beautifulsoup4 lxml
+   ```
+
+3. **Run the application:**
+   ```bash
+   python main.py
+   ```
+
+---
+
+## 📦 Project Structure
+
+*   `main.py` - Main application entry point and logic.
+*   `components/` - JSON and HTML snippets for quick-insert blocks.
+*   `templates/` - Pre-built page layouts and gallery thumbnails.
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page or submit a pull request.
+
+---
+
+## 📜 License
+
+This project is open-source under the [MIT License](LICENSE).
