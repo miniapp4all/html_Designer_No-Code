@@ -1,0 +1,10 @@
+{
+  "icon": "📊",
+  "title": "Bảng Dữ Liệu",
+  "items": [
+    {
+      "name": "📊 Bảng Dữ Liệu (Table Gốc)",
+      "html": "<div style=\"overflow-x:auto;padding:10px;width:100%;\"><table style=\"width:100%;border-collapse:collapse;margin:15px 0;font-family:sans-serif;color:inherit;\"><tr style=\"background:#007acc;color:white;text-align:left;\"><th style=\"padding:12px 15px;\">ID</th><th style=\"padding:12px 15px;\">Họ Tên</th><th style=\"padding:12px 15px;\">Trạng Thái</th></tr><tr style=\"border-bottom: 1px solid rgba(150,150,150,0.3);\"><td style=\"padding:12px 15px;\">#01</td><td style=\"padding:12px 15px;\">Nguyễn Văn A</td><td style=\"padding:12px 15px;\"><span style=\"background:#28a745;color:white;padding:4px 8px;border-radius:12px;font-size:12px;\">Hoạt động</span></td></tr><tr style=\"border-bottom: 1px solid rgba(150,150,150,0.3);background:rgba(150,150,150,0.05);\"><td style=\"padding:12px 15px;\">#02</td><td style=\"padding:12px 15px;\">Trần Thị B</td><td style=\"padding:12px 15px;\"><span style=\"background:#dc3545;color:white;padding:4px 8px;border-radius:12px;font-size:12px;\">Bị khóa</span></td></tr></table></div>"
+    }
+  ]
+}

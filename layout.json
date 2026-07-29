@@ -1,0 +1,22 @@
+{
+  "icon": "🔲",
+  "title": "Bố cục (Layout)",
+  "items": [
+    {
+      "name": "🔲 2 Cột Bằng Nhau (1/2 - 1/2)",
+      "html": "<div class=\"row-wrap\" style=\"display:flex;flex-wrap:wrap;gap:15px;width:100%;\"><div class=\"col\" style=\"flex:1 1 0%;min-width:150px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Cột Trái (1/2)</div><div class=\"col\" style=\"flex:1 1 0%;min-width:150px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Cột Phải (1/2)</div></div>"
+    },
+    {
+      "name": "🔲 3 Cột Bằng Nhau (1/3 - 1/3 - 1/3)",
+      "html": "<div class=\"row-wrap\" style=\"display:flex;flex-wrap:wrap;gap:15px;width:100%;\"><div class=\"col\" style=\"flex:1 1 0%;min-width:150px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Cột 1 (1/3)</div><div class=\"col\" style=\"flex:1 1 0%;min-width:150px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Cột 2 (1/3)</div><div class=\"col\" style=\"flex:1 1 0%;min-width:150px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Cột 3 (1/3)</div></div>"
+    },
+    {
+      "name": "🔲 Lệch Trái (1/3 - 2/3)",
+      "html": "<div class=\"row-wrap\" style=\"display:flex;flex-wrap:wrap;gap:15px;width:100%;\"><div class=\"col\" style=\"flex:1 1 0%;min-width:150px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Trái (1/3)</div><div class=\"col\" style=\"flex:2 1 0%;min-width:250px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Phải (2/3)</div></div>"
+    },
+    {
+      "name": "🔲 Lệch Phải (2/3 - 1/3)",
+      "html": "<div class=\"row-wrap\" style=\"display:flex;flex-wrap:wrap;gap:15px;width:100%;\"><div class=\"col\" style=\"flex:2 1 0%;min-width:250px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Trái (2/3)</div><div class=\"col\" style=\"flex:1 1 0%;min-width:150px;max-width:100%;background: rgba(150,150,150,0.05); border: 1px solid rgba(150,150,150,0.3); color: inherit; padding: 15px; border-radius: 8px; overflow: hidden;\">Phải (1/3)</div></div>"
+    }
+  ]
+}

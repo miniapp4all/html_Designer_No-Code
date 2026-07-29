@@ -1,0 +1,18 @@
+{
+  "icon": "🔘",
+  "title": "Nút (Buttons)",
+  "items": [
+    {
+      "name": "🔘 Nút (Btn Gốc)",
+      "html": "<a href=\"#\" style=\"display:inline-block;background:#007acc;color:#fff;padding:10px 25px;border-radius:25px;text-decoration:none;font-weight:bold;box-shadow:0 4px 6px rgba(0,122,204,0.3); transition: 0.3s;margin:5px;\">Nhấn Vào Đây</a>"
+    },
+    {
+      "name": "🔘 [MỚI] Nút Gradient Nổi Bật",
+      "html": "<a href=\"#\" style=\"display:inline-block;background:linear-gradient(135deg, #007acc, #00d2ff);color:#fff;padding:12px 28px;border-radius:30px;text-decoration:none;font-weight:bold;font-size:14px;box-shadow:0 4px 12px rgba(0,210,255,0.3);margin:5px;\">Khám Phá Thêm ➔</a>"
+    },
+    {
+      "name": "🔘 [MỚI] Nút Viền (Outline)",
+      "html": "<a href=\"#\" style=\"display:inline-block;background:rgba(255,255,255,0.05);color:#00d2ff;border:1px solid #00d2ff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:13px;margin:5px;\">Đọc Chi Tiết</a>"
+    }
+  ]
+}
