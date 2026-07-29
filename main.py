@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QSplitter, QWidget,
                                QVBoxLayout, QHBoxLayout, QFormLayout, QTreeWidget, QTreeWidgetItem,
                                QLineEdit, QTextEdit, QPushButton, QMessageBox, QFileDialog, QLabel, QMenu, QSizePolicy,
                                QAbstractItemView, QColorDialog, QTabWidget, QGroupBox, QGridLayout, QComboBox, QCheckBox,
-                                QListWidget) # <--- ADDED QListWidget HERE
+                               QListWidget)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import QUrl, Qt, QPoint, QRegularExpression
 from PySide6.QtGui import QKeySequence, QShortcut, QSyntaxHighlighter, QTextCharFormat, QColor, QFont, QDesktopServices
@@ -47,6 +47,7 @@ class DOMTreeWidget(QTreeWidget):
             if curr == parent: return True
             curr = curr.parent()
         return False
+
     def dropEvent(self, event):
         dragged_items = self.selectedItems()
         if not dragged_items: return super().dropEvent(event)
@@ -76,7 +77,7 @@ class DOMTreeWidget(QTreeWidget):
 
         super().dropEvent(event)
         self.main_window.update_preview()
-        self.main_window.statusBar().showMessage("🔄 Tag position changed and HTML updated!", 3000)
+        self.main_window.statusBar().showMessage("🔄 Swapped tag positions and updated HTML!", 3000)
 
 from PySide6.QtGui import QDesktopServices, QCursor
 from PySide6.QtCore import QUrl
@@ -99,11 +100,9 @@ class CustomWebEnginePage(QWebEnginePage):
                     
             elif message.startswith("EDITOR_CLICK:"):
                 self.main_window.select_tree_item_by_id(message.split("EDITOR_CLICK:")[1])
-                # --- Return keyboard focus to the browser ---
                 self.main_window.web_view.setFocus()
                 
             elif message.startswith("EDITOR_EDIT_MODE:"):
-                # Force focus again when the User is double-clicking to type
                 self.main_window.web_view.setFocus()
                 
             elif message.startswith("EDITOR_OPEN_LINK:"):
@@ -115,7 +114,7 @@ class CustomWebEnginePage(QWebEnginePage):
             elif message.startswith("EDITOR_CONTEXT:"):
                 eid = message.split("EDITOR_CONTEXT:")[1]
                 self.main_window.select_tree_item_by_id(eid)
-                self.main_window.web_view.setFocus() # Mandatory
+                self.main_window.web_view.setFocus()
                 self.main_window.show_context_menu(QCursor.pos(), from_web=True)
             
             elif message.startswith("EDITOR_RESIZE:"):
@@ -123,15 +122,15 @@ class CustomWebEnginePage(QWebEnginePage):
                     data = message.split("EDITOR_RESIZE:")[1]
                     eid, w, h = data.split("|")
                     self.main_window.sync_resize_from_web(eid, w, h)
-                except Exception as e:
+                except Exception:
                     pass
-                    
+
             elif message.startswith("EDITOR_DRAG_POS:"):
                 try:
                     data = message.split("EDITOR_DRAG_POS:")[1]
                     eid, left, top = data.split("|")
                     self.main_window.sync_drag_pos_from_web(eid, left, top)
-                except Exception as e:
+                except Exception:
                     pass
 
         super().javaScriptConsoleMessage(level, message, lineNumber, sourceID)
@@ -150,8 +149,8 @@ from PySide6.QtWidgets import QScrollArea
 class UniversalHTMLEditor(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("html_Designer_LTH - No-Code Designer v5.2 (Ultimate Layout)")
-        self.resize(1600, 950)
+        self.setWindowTitle("html_Designer_LTH - No-Code Designer v6.5 (Ultimate Layout)")
+        self.resize(1200, 950)
         self.soup = None; self.current_node = None; self.current_file_path = None
         self.clipboard_node = None; self.node_map = {}; self.undo_stack = [] 
 
@@ -171,7 +170,6 @@ class UniversalHTMLEditor(QMainWindow):
             QGroupBox { border: 1px solid #3e3e42; border-radius: 6px; margin-top: 10px; padding-top: 15px; font-weight: bold; color: #ce9178; }
             QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }
             
-            /* Customize the Splitter bar to make it extremely easy to grab and drag */
             QSplitter::handle { background-color: #3e3e42; }
             QSplitter::handle:horizontal { width: 4px; }
             QSplitter::handle:vertical { 
@@ -181,13 +179,12 @@ class UniversalHTMLEditor(QMainWindow):
                 border-bottom: 1px solid #3e3e42; 
                 margin: 2px 0;
             }
-            QSplitter::handle:vertical:hover { background-color: #007acc; } /* Highlight blue on hover */
+            QSplitter::handle:vertical:hover { background-color: #007acc; }
             
-            /* Hide the border of the scroll area */
             QScrollArea { border: none; background-color: transparent; }
         """)
 
-        QShortcut(QKeySequence("Ctrl+Z"), self).activated.connect(self.undo_action)      
+        QShortcut(QKeySequence("Ctrl+Z"), self).activated.connect(self.undo_action)       
 
         self.tree = DOMTreeWidget(self) 
         self.tree.setHeaderHidden(True)
@@ -199,7 +196,6 @@ class UniversalHTMLEditor(QMainWindow):
             sc.setContext(Qt.ShortcutContext.WidgetShortcut)
             sc.activated.connect(func)
             
-        # --- KEYBOARD SHORTCUTS TO INCREASE/DECREASE FONT SIZE LIKE WORD ---
         sc_inc_font = QShortcut(QKeySequence("Ctrl+]"), self)
         sc_inc_font.setContext(Qt.ShortcutContext.ApplicationShortcut)
         sc_inc_font.activated.connect(lambda: self.kbd_adjust_font(2))
@@ -207,8 +203,7 @@ class UniversalHTMLEditor(QMainWindow):
         sc_dec_font = QShortcut(QKeySequence("Ctrl+["), self)
         sc_dec_font.setContext(Qt.ShortcutContext.ApplicationShortcut)
         sc_dec_font.activated.connect(lambda: self.kbd_adjust_font(-2))
-        
-        # --- SAVE SHORTCUT MUST BE SET AS "GLOBAL" (ApplicationShortcut) ---
+
         sc_save = QShortcut(QKeySequence("Ctrl+S"), self)
         sc_save.setContext(Qt.ShortcutContext.ApplicationShortcut)
         sc_save.activated.connect(self.kbd_save)
@@ -217,26 +212,27 @@ class UniversalHTMLEditor(QMainWindow):
         sc_save_as.setContext(Qt.ShortcutContext.ApplicationShortcut)
         sc_save_as.activated.connect(self.kbd_save_as)
         
-        self.statusBar().showMessage("Ready - Undo (Ctrl+Z) & Save shortcut (Ctrl+S) enabled")
-        
+        self.statusBar().showMessage("Ready - Undo (Ctrl+Z) & Save (Ctrl+S) shortcuts enabled")
+
         self.statusBar().setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.statusBar().setFixedHeight(25)
         
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(main_splitter)
 
-
         left_panel = QWidget(); left_layout = QVBoxLayout(left_panel); left_layout.setSpacing(10)
+        
+        left_panel.setMinimumWidth(550)
+        left_panel.setMaximumWidth(600)
 
-        left_panel.setMinimumWidth(300)
-       
         top_left_layout = QHBoxLayout(); top_left_layout.setContentsMargins(0,0,0,0)
         self.btn_open = QPushButton("📂 Open File"); self.btn_open.clicked.connect(self.load_file_dialog)
         
-        self.btn_template = QPushButton("📑 HTML Template")
+        self.btn_template = QPushButton("📑 HTML Templates")
         self.btn_template.setStyleSheet("background-color: #d7ba7d; color: #1e1e1e; font-weight: bold;")
         self.btn_template.clicked.connect(self.show_template_gallery)
 
-        self.inp_search_dom = QLineEdit(); self.inp_search_dom.setPlaceholderText("🔍 Quick tag search (Enter ID, Class...)")
+        self.inp_search_dom = QLineEdit(); self.inp_search_dom.setPlaceholderText("🔍 Quick tag search (ID, Class...)")
         self.inp_search_dom.textChanged.connect(self.search_dom_tree)
         
         top_left_layout.addWidget(self.btn_open)
@@ -250,7 +246,6 @@ class UniversalHTMLEditor(QMainWindow):
         left_splitter.setChildrenCollapsible(False)
         left_layout.addWidget(left_splitter, stretch=1)
 
-        # TOP PANEL (DOM Tree)
         tree_container = QWidget(); tree_layout = QVBoxLayout(tree_container); tree_layout.setContentsMargins(0,0,0,0)
         tree_container.setMinimumHeight(150)
         self.tree = DOMTreeWidget(self); self.tree.setHeaderHidden(True)
@@ -262,27 +257,27 @@ class UniversalHTMLEditor(QMainWindow):
         self.lbl_breadcrumb = QLabel("📌 No tag selected")
         self.lbl_breadcrumb.setStyleSheet("background: #252526; padding: 8px; border: 1px solid #3e3e42; border-radius: 4px; color: #ce9178; font-weight: bold;")
         self.lbl_breadcrumb.setWordWrap(True)
-        
-        self.lbl_breadcrumb.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self.lbl_breadcrumb.setMinimumHeight(35)
-        self.lbl_breadcrumb.setMaximumHeight(70)
+
+        self.lbl_breadcrumb.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.lbl_breadcrumb.setFixedHeight(45)
         
         tree_layout.addWidget(self.lbl_breadcrumb)
         left_splitter.addWidget(tree_container)
 
         bottom_container = QWidget(); bottom_layout = QVBoxLayout(bottom_container); bottom_layout.setContentsMargins(0,0,0,0)
-        bottom_container.setMinimumHeight(150) # Allow it to be squeezed very small
+        bottom_container.setMinimumHeight(150)
         self.tabs = QTabWidget(); bottom_layout.addWidget(self.tabs, stretch=1)
 
         def make_scrollable(widget):
             scroll = QScrollArea()
             scroll.setWidgetResizable(True)
             scroll.setWidget(widget)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             return scroll
 
         self.inp_tag = QLineEdit(); self.inp_id = QLineEdit(); self.inp_class = QLineEdit(); self.inp_data_trang = QLineEdit()
         self.inp_href = QLineEdit(); self.inp_src = QLineEdit() 
-        
+
         active_style = """
             QLineEdit, QComboBox { background-color: #252526; border: 1px solid #3e3e42; padding: 6px; border-radius: 4px; color: #d4d4d4; }
             QLineEdit:focus, QComboBox:focus, QLineEdit:hover:enabled { border: 1px solid #007acc; background-color: #2d2d30; color: #ffffff; font-weight: bold; }
@@ -290,10 +285,11 @@ class UniversalHTMLEditor(QMainWindow):
         """
         for w in [self.inp_tag, self.inp_id, self.inp_class, self.inp_data_trang, self.inp_href, self.inp_src]:
             w.setStyleSheet(active_style)
-
             if w != self.inp_tag: w.editingFinished.connect(self.apply_changes)
-  
+
         self.inp_text = QWebEngineView()
+        self.inp_text.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
+        
         monaco_html = """
         <!DOCTYPE html>
         <html>
@@ -307,7 +303,7 @@ class UniversalHTMLEditor(QMainWindow):
                 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs' }});
                 require(['vs/editor/editor.main'], function() {
                     window.editor = monaco.editor.create(document.getElementById('container'), {
-                        value: '<!-- Select a tag to view the HTML code -->',
+                        value: '<!-- Select a tag to view HTML code -->',
                         language: 'html',
                         theme: 'vs-dark',
                         wordWrap: 'on',
@@ -328,7 +324,7 @@ class UniversalHTMLEditor(QMainWindow):
         self.inp_style.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
         self.inp_style.setMinimumHeight(60)
         
-        self.btn_bg_color = QPushButton("🎨 Fill Background"); self.btn_bg_color.clicked.connect(self.pick_bg_color)
+        self.btn_bg_color = QPushButton("🎨 Background"); self.btn_bg_color.clicked.connect(self.pick_bg_color)
         self.btn_text_color = QPushButton("🔤 Text Color"); self.btn_text_color.clicked.connect(self.pick_text_color)
         self.btn_browse_href = QPushButton("🔗"); self.btn_browse_href.clicked.connect(self.browse_href_file)
         self.btn_browse_src = QPushButton("🖼️"); self.btn_browse_src.clicked.connect(self.browse_src_file)
@@ -338,62 +334,61 @@ class UniversalHTMLEditor(QMainWindow):
         form_config.addRow("Tag Name:", self.inp_tag); form_config.addRow("ID:", self.inp_id)
         form_config.addRow("Class:", self.inp_class); form_config.addRow("Data-Page:", self.inp_data_trang)
         
-        self.inp_form_action = QLineEdit(); self.inp_form_action.setPlaceholderText("Link API (VD: https://formspree.io/f/...)")
+        self.inp_form_action = QLineEdit(); self.inp_form_action.setPlaceholderText("API Link (e.g., https://formspree.io/f/...)")
         self.inp_form_action.setStyleSheet(active_style); self.inp_form_action.editingFinished.connect(self.apply_changes)
         
         self.inp_form_method = QComboBox(); self.inp_form_method.addItems(["POST", "GET"]); self.inp_form_method.setStyleSheet(active_style)
         self.inp_form_method.currentTextChanged.connect(self.apply_changes)
         
-        self.lbl_form = QLabel("Form Configuration:")
+        self.lbl_form = QLabel("Form Config:")
         self.lbl_form.setStyleSheet("color: #ff9800; font-weight: bold;")
         self.w_form = QWidget(); form_action_layout = QHBoxLayout(self.w_form); form_action_layout.setContentsMargins(0,0,0,0)
         form_action_layout.addWidget(self.inp_form_method)
         form_action_layout.addWidget(self.inp_form_action, stretch=1)
         form_config.addRow(self.lbl_form, self.w_form)
-        self.lbl_form.setVisible(False); self.w_form.setVisible(False) # Hidden by default
+        self.lbl_form.setVisible(False); self.w_form.setVisible(False)
         
         self.lbl_href = QLabel("Href (Link):")
         self.w_href = QWidget(); href_layout = QHBoxLayout(self.w_href); href_layout.setContentsMargins(0,0,0,0)
         href_layout.addWidget(self.inp_href)
         href_layout.addWidget(self.btn_browse_href)
         
-        self.btn_make_link = QPushButton("🪄 Make Link")
+        self.btn_make_link = QPushButton("🪄 Create Link")
         self.btn_make_link.setStyleSheet("background-color: #28a745; color: white; font-weight: bold; border-radius: 4px; padding: 4px 8px;")
         self.btn_make_link.clicked.connect(self.convert_to_link)
         href_layout.addWidget(self.btn_make_link)
         form_config.addRow(self.lbl_href, self.w_href)
         
-        # Wrap the Src block so it is fully hidden when the tag is not an Image
         self.lbl_src = QLabel("Src (Image):")
         self.w_src = QWidget(); src_layout = QHBoxLayout(self.w_src); src_layout.setContentsMargins(0,0,0,0)
         src_layout.addWidget(self.inp_src); src_layout.addWidget(self.btn_browse_src)
         form_config.addRow(self.lbl_src, self.w_src)
         
-        self.chk_img_responsive = QCheckBox("🛡️ Force image to fit frame (Prevent breaking Layout)")
+        self.chk_img_responsive = QCheckBox("🛡️ Force image to fit container (Prevent layout breakage)")
         self.chk_img_responsive.setStyleSheet("color: #28a745; font-weight: bold; margin-bottom: 5px;")
         form_config.addRow("", self.chk_img_responsive)
-        self.tabs.addTab(make_scrollable(tab_config), "⚙️ Configuration")
+        self.tabs.addTab(make_scrollable(tab_config), "⚙️ Config")
 
         tab_style = QWidget(); style_layout = QVBoxLayout(tab_style); style_layout.setContentsMargins(15, 10, 15, 10)
-        css_group = QGroupBox("📏 Size & Alignment"); css_grid = QGridLayout(css_group)
-        self.css_width = QLineEdit(); self.css_width.setPlaceholderText("VD: 100px, 100%")
-        self.css_height = QLineEdit(); self.css_height.setPlaceholderText("VD: 50px, auto")
-        self.css_padding = QLineEdit(); self.css_padding.setPlaceholderText("Padding (e.g.: 10px 20px)")
-        self.css_margin = QLineEdit(); self.css_margin.setPlaceholderText("Margin (e.g.: 0 auto)")
+        css_group = QGroupBox("📏 Dimensions & Margins"); css_grid = QGridLayout(css_group)
+        self.css_width = QLineEdit(); self.css_width.setPlaceholderText("e.g., 100px, 100%")
+        self.css_height = QLineEdit(); self.css_height.setPlaceholderText("e.g., 50px, auto")
+        self.css_padding = QLineEdit(); self.css_padding.setPlaceholderText("Inner (e.g., 10px 20px)")
+        self.css_margin = QLineEdit(); self.css_margin.setPlaceholderText("Outer (e.g., 0 auto)")
         self.css_display = QComboBox(); self.css_display.addItems(["(Default)", "block", "inline-block", "flex", "grid", "none"])
 
         css_grid.addWidget(QLabel("Width (W):"), 0, 0); css_grid.addWidget(self.css_width, 0, 1)
-        css_grid.addWidget(QLabel("Cao (H):"), 0, 2); css_grid.addWidget(self.css_height, 0, 3)
+        css_grid.addWidget(QLabel("Height (H):"), 0, 2); css_grid.addWidget(self.css_height, 0, 3)
         css_grid.addWidget(QLabel("Padding:"), 1, 0); css_grid.addWidget(self.css_padding, 1, 1)
         css_grid.addWidget(QLabel("Margin:"), 1, 2); css_grid.addWidget(self.css_margin, 1, 3)
-        css_grid.addWidget(QLabel("Layout:"), 2, 0); css_grid.addWidget(self.css_display, 2, 1, 1, 3)
+        css_grid.addWidget(QLabel("Display:"), 2, 0); css_grid.addWidget(self.css_display, 2, 1, 1, 3)
         style_layout.addWidget(css_group)
         color_layout = QHBoxLayout(); color_layout.addWidget(self.btn_bg_color); color_layout.addWidget(self.btn_text_color)
         style_layout.addLayout(color_layout)
-        style_layout.addWidget(QLabel("<b>Raw CSS Code (Line by line detail):</b>"))
+        style_layout.addWidget(QLabel("<b>Raw CSS (Line by line):</b>"))
         style_layout.addWidget(self.inp_style, stretch=1)
         
-        self.btn_apply_css = QPushButton("✔️ APPLY CSS CODE TO INTERFACE")
+        self.btn_apply_css = QPushButton("✔️ APPLY CSS TO PREVIEW")
         self.btn_apply_css.setStyleSheet("background-color: #28a745; font-weight: bold; margin-top: 5px; padding: 10px;")
         self.btn_apply_css.clicked.connect(self.apply_changes)
         style_layout.addWidget(self.btn_apply_css)
@@ -402,7 +397,7 @@ class UniversalHTMLEditor(QMainWindow):
         self.css_display.currentTextChanged.connect(self.on_visual_input_changed)
         self.inp_style.textChanged.connect(self.on_raw_css_changed)
         self.tabs.addTab(make_scrollable(tab_style), "🎨 Visual CSS")
-
+        
         tab_content = QWidget(); form_content = QVBoxLayout(tab_content); form_content.setContentsMargins(0, 0, 0, 0)
         form_content.addWidget(self.inp_text, stretch=1)
         self.tabs.addTab(tab_content, "📝 Content")
@@ -410,15 +405,16 @@ class UniversalHTMLEditor(QMainWindow):
         tab_library = QWidget(); lib_layout = QVBoxLayout(tab_library); lib_layout.setContentsMargins(15, 15, 15, 15)
         
         lib_top = QHBoxLayout()
-        self.btn_refresh_lib = QPushButton("🔄 Refresh list")
+        self.btn_refresh_lib = QPushButton("🔄 Refresh List")
         self.btn_refresh_lib.clicked.connect(self.refresh_library)
         lib_top.addWidget(QLabel("<b>Source: /components/</b>"), stretch=1)
         lib_top.addWidget(self.btn_refresh_lib)
         
-        self.list_library = QListWidget()
-        self.list_library.setStyleSheet("QListWidget { background: #1e1e1e; border: 1px solid #3e3e42; color: #4fc1ff; font-size: 14px; } QListWidget::item { padding: 10px; border-bottom: 1px solid #333; } QListWidget::item:selected { background: #094771; color: white; font-weight: bold; }")
+        self.list_library = QTreeWidget()
+        self.list_library.setHeaderHidden(True)
+        self.list_library.setStyleSheet("QTreeWidget { background: #1e1e1e; border: 1px solid #3e3e42; color: #4fc1ff; font-size: 14px; } QTreeWidget::item { padding: 8px; border-bottom: 1px solid #333; } QTreeWidget::item:selected { background: #094771; color: white; font-weight: bold; }")
         
-        self.btn_insert_lib = QPushButton("➕ INSERT SELECTED BLOCK INTO INTERFACE")
+        self.btn_insert_lib = QPushButton("➕ INSERT SELECTED BLOCK INTO LAYOUT")
         self.btn_insert_lib.setStyleSheet("background-color: #0e639c; font-weight: bold; padding: 12px; margin-top: 5px;")
         self.btn_insert_lib.clicked.connect(self.insert_from_library)
         
@@ -437,13 +433,13 @@ class UniversalHTMLEditor(QMainWindow):
         self.btn_save.setStyleSheet("background-color: #28a745; font-weight: bold;")
         self.btn_save.clicked.connect(self.save_file)
         
-        self.btn_zip = QPushButton("📦 Standard ZIP")
+        self.btn_zip = QPushButton("📦 Export ZIP")
         self.btn_zip.setStyleSheet("background-color: #6c757d; font-weight: bold;")
         self.btn_zip.clicked.connect(self.export_project_to_zip)
         
         action_layout.addWidget(btn_apply, stretch=1); action_layout.addWidget(self.btn_save, stretch=1); action_layout.addWidget(self.btn_zip, stretch=1)
         
-        self.btn_export_prod = QPushButton("🚀 EXPORT PRODUCTION (Split CSS & Optimize)")
+        self.btn_export_prod = QPushButton("🚀 EXPORT PRODUCTION (Extract CSS & Optimize)")
         self.btn_export_prod.setStyleSheet("background-color: #e83e8c; color: white; font-weight: bold; font-size: 14px; padding: 10px; margin-top: 5px; border-radius: 4px;")
         self.btn_export_prod.clicked.connect(self.export_production_zip)
         
@@ -456,29 +452,38 @@ class UniversalHTMLEditor(QMainWindow):
         right_panel = QWidget(); right_layout = QVBoxLayout(right_panel); right_layout.setContentsMargins(0, 0, 0, 0)
         
         device_toolbar = QHBoxLayout(); device_toolbar.setContentsMargins(10, 5, 10, 5)
-        self.lbl_current_file = QLabel("No file open...")
+        self.lbl_current_file = QLabel("No file opened...")
         self.lbl_current_file.setStyleSheet("padding: 5px; background: #333; font-weight: bold; border-radius: 4px;")
         
         self.lbl_current_file.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self.lbl_current_file.setMinimumWidth(200)
-        self.lbl_current_file.setMaximumWidth(350)
+        self.lbl_current_file.setMinimumWidth(150)
+        self.lbl_current_file.setMaximumWidth(250)
         
-        self.btn_deselect = QPushButton("🚫 Deselect (Esc)")
-        self.btn_deselect.setToolTip("Exit the currently selected object, cancel typing mode")
+        self.btn_desktop = QPushButton("💻 Desktop")
+        self.btn_mobile = QPushButton("📱 Mobile")
+        self.btn_desktop.setToolTip("View full screen")
+        self.btn_mobile.setToolTip("Simulate Mobile width (414px)")
+        
+        self.btn_desktop.clicked.connect(lambda: self.simulate_device("desktop"))
+        self.btn_mobile.clicked.connect(lambda: self.simulate_device("mobile"))
+        
+        self.btn_deselect = QPushButton("🚫 Esc")
+        self.btn_deselect.setToolTip("Deselect, cancel text editing")
         self.btn_deselect.clicked.connect(self.clear_selection)
         
-        self.btn_refresh_view = QPushButton("🔄 Reload View")
-        self.btn_refresh_view.setToolTip("Re-render the Web view")
+        self.btn_refresh_view = QPushButton("🔄 Reload")
         self.btn_refresh_view.clicked.connect(self.update_preview)
         
-        self.btn_open_browser = QPushButton("🌍 View in Browser")
-        self.btn_open_browser.setToolTip("Open the current HTML file in Chrome/Edge/Safari...")
+        self.btn_open_browser = QPushButton("🌍 Web")
+        self.btn_open_browser.setToolTip("Open in external browser")
         self.btn_open_browser.clicked.connect(self.open_in_external_browser)
         
-        for btn in [self.btn_deselect, self.btn_refresh_view, self.btn_open_browser]:
-            btn.setStyleSheet("background: #4d4d4d; padding: 5px 12px; border-radius: 4px; font-weight: bold; color: white;")
+        for btn in [self.btn_deselect, self.btn_refresh_view, self.btn_open_browser, self.btn_desktop, self.btn_mobile]:
+            btn.setStyleSheet("background: #4d4d4d; padding: 5px 10px; border-radius: 4px; font-weight: bold; color: white;")
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_open_browser.setStyleSheet("background: #28a745; padding: 5px 12px; border-radius: 4px; font-weight: bold; color: white;")
+            
+        self.btn_open_browser.setStyleSheet("background: #28a745; padding: 5px 10px; border-radius: 4px; font-weight: bold; color: white;")
+        self.btn_desktop.setStyleSheet("background: #007acc; padding: 5px 10px; border-radius: 4px; font-weight: bold; color: white;")
         
         sc_esc = QShortcut(QKeySequence("Esc"), self)
         sc_esc.setContext(Qt.ShortcutContext.ApplicationShortcut)
@@ -488,49 +493,44 @@ class UniversalHTMLEditor(QMainWindow):
         self.cb_zoom.addItems(["75%", "100%", "110%", "120%"])
         self.cb_zoom.setCurrentText("100%")
         self.cb_zoom.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.cb_zoom.setStyleSheet("""
-            QComboBox { background: #333; padding: 4px 10px; border-radius: 4px; font-weight: bold; color: white; border: 1px solid #555; }
-            QComboBox::drop-down { border-left: 1px solid #555; }
-        """)
+        self.cb_zoom.setStyleSheet("QComboBox { background: #333; padding: 4px 5px; border-radius: 4px; font-weight: bold; color: white; border: 1px solid #555; }")
         self.cb_zoom.currentTextChanged.connect(self.change_zoom)
 
-        self.btn_undo = QPushButton("⏪ Back")
-        self.btn_undo.setToolTip("Undo previous action (Ctrl+Z)")
+        self.btn_undo = QPushButton("⏪ Undo")
         self.btn_undo.clicked.connect(self.undo_action)
-        
-        self.btn_redo = QPushButton("⏩ Forward")
-        self.btn_redo.setToolTip("Redo next action (Ctrl+Y)")
+        self.btn_redo = QPushButton("⏩ Redo")
         self.btn_redo.clicked.connect(self.redo_action)
         
         for btn in [self.btn_undo, self.btn_redo]:
-            btn.setStyleSheet("background: #0e639c; padding: 5px 12px; border-radius: 4px; font-weight: bold; color: white;")
+            btn.setStyleSheet("background: #0e639c; padding: 5px 10px; border-radius: 4px; font-weight: bold; color: white;")
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
         sc_redo = QShortcut(QKeySequence("Ctrl+Y"), self)
         sc_redo.setContext(Qt.ShortcutContext.ApplicationShortcut)
         sc_redo.activated.connect(self.redo_action)
 
-        self.is_edit_mode = True # Default state
-        self.btn_toggle_mode = QPushButton("🛠️ EDIT MODE (Click to view live)")
-        self.btn_toggle_mode.setStyleSheet("background-color: #d7ba7d; color: #1e1e1e; font-weight: bold; padding: 5px 15px; border-radius: 4px; font-size: 14px;")
+        self.is_edit_mode = True
+        self.btn_toggle_mode = QPushButton("🛠️ Edit / 👁️ Preview")
+        self.btn_toggle_mode.setToolTip("Click to toggle between Edit Mode and Preview Mode")
+        self.btn_toggle_mode.setStyleSheet("background-color: #d7ba7d; color: #1e1e1e; font-weight: bold; padding: 5px 10px; border-radius: 4px;")
         self.btn_toggle_mode.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_toggle_mode.clicked.connect(self.toggle_view_mode)
 
         device_toolbar.addWidget(self.lbl_current_file)
-        device_toolbar.addWidget(self.btn_deselect)
+        device_toolbar.addWidget(self.btn_desktop)
+        device_toolbar.addWidget(self.btn_mobile)
         device_toolbar.addWidget(self.btn_refresh_view)
         device_toolbar.addWidget(self.btn_open_browser)
+        device_toolbar.addWidget(self.btn_deselect)
         
         device_toolbar.addStretch(1) 
-        
-        # ATTACH THE MODE TOGGLE BUTTON TO THE CENTER
         device_toolbar.addWidget(self.btn_toggle_mode)
-        device_toolbar.addSpacing(20)
+        device_toolbar.addStretch(1)
 
         device_toolbar.addWidget(self.btn_undo)
         device_toolbar.addWidget(self.btn_redo)
         
-        device_toolbar.addWidget(QLabel("🔍 Web Zoom:"))
+        device_toolbar.addWidget(QLabel("🔍 Zoom:"))
         device_toolbar.addWidget(self.cb_zoom)
         right_layout.addLayout(device_toolbar)
 
@@ -552,68 +552,65 @@ class UniversalHTMLEditor(QMainWindow):
         web_layout.addWidget(self.spacer_left, stretch=1)
         web_layout.addWidget(self.web_view, stretch=0)
         web_layout.addWidget(self.spacer_right, stretch=1)
-        self.view_stack.addWidget(self.web_container) # Insert into Layer 0
+        self.view_stack.addWidget(self.web_container)
 
         self.gallery_widget = QWidget()
         self.gallery_widget.setStyleSheet("background-color: #1e1e1e;")
         gallery_layout = QVBoxLayout(self.gallery_widget)
         
-        self.grid_layout = QGridLayout()
-        self.grid_layout.setSpacing(15)
+        tpl_splitter = QSplitter(Qt.Orientation.Horizontal)
         
-        self.mini_views = []
-        self.mini_overlays = []
-    
-        for i in range(4):
-            thumb_container = QWidget()
-            mini_view = QWebEngineView()
-            mini_view.setZoomFactor(0.3)
-            mini_view.settings().setAttribute(QWebEngineSettings.WebAttribute.ShowScrollBars, False)
-            mini_view.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-            
-            overlay_btn = QPushButton()
-            overlay_btn.setStyleSheet("""
-                QPushButton { background-color: transparent; color: transparent; border: 2px solid #3e3e42; border-radius: 8px; }
-                QPushButton:hover { background-color: rgba(0, 122, 204, 0.6); color: white; font-size: 22px; font-weight: bold; border: 2px solid #007acc; }
-            """)
-            
-            cell_stack = QStackedLayout(thumb_container)
-            cell_stack.setStackingMode(QStackedLayout.StackingMode.StackAll)
-            cell_stack.addWidget(mini_view)
-            cell_stack.addWidget(overlay_btn)
-            
-            row, col = i // 2, i % 2 
-            self.grid_layout.addWidget(thumb_container, row, col)
-            
-            self.mini_views.append(mini_view)
-            self.mini_overlays.append(overlay_btn)
+        self.tpl_tree = QTreeWidget()
+        self.tpl_tree.setHeaderLabel("📂 HTML Templates Directory")
+        self.tpl_tree.setStyleSheet("""
+            QTreeWidget { background: #252526; border: 1px solid #3e3e42; color: #d4d4d4; font-size: 14px; }
+            QTreeWidget::item { padding: 8px; border-bottom: 1px solid #333; }
+            QTreeWidget::item:selected { background: #094771; color: white; font-weight: bold; }
+            QHeaderView::section {
+                background-color: #2d2d30;
+                color: #ffffff;
+                padding: 8px;
+                border: 1px solid #3e3e42;
+                font-weight: bold;
+                font-size: 13px;
+            }
+        """)
+        self.tpl_tree.itemClicked.connect(self.on_tpl_tree_clicked)
+        tpl_splitter.addWidget(self.tpl_tree)
 
-        gallery_layout.addLayout(self.grid_layout, stretch=1)
+        right_tpl = QWidget()
+        right_tpl_layout = QVBoxLayout(right_tpl)
+        right_tpl_layout.setContentsMargins(0, 0, 0, 0)
         
-        nav_layout = QHBoxLayout()
-        self.btn_prev_tpl = QPushButton("⬅️ Previous"); self.btn_prev_tpl.clicked.connect(self.prev_template_page)
-        self.lbl_page_tpl = QLabel("Trang 1 / 1"); self.lbl_page_tpl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.btn_next_tpl = QPushButton("Sau ➡️"); self.btn_next_tpl.clicked.connect(self.next_template_page)
+        self.lbl_tpl_info = QLabel("📌 Select a template on the left to preview")
+        self.lbl_tpl_info.setStyleSheet("background: #252526; color: #ce9178; font-weight: bold; padding: 10px; border: 1px solid #3e3e42; font-size: 14px;")
+        self.lbl_tpl_info.setWordWrap(True)
         
-        btn_style = "background: #007acc; color: white; padding: 10px; font-weight: bold; border-radius: 4px;"
-        self.btn_prev_tpl.setStyleSheet(btn_style)
-        self.btn_next_tpl.setStyleSheet(btn_style)
-        self.lbl_page_tpl.setStyleSheet("color: white; font-size: 16px; font-weight: bold;")
+        self.tpl_preview = QWebEngineView()
+        self.tpl_preview.setStyleSheet("background: #111111;")
         
-        nav_layout.addWidget(self.btn_prev_tpl)
-        nav_layout.addWidget(self.lbl_page_tpl, stretch=1)
-        nav_layout.addWidget(self.btn_next_tpl)
-        gallery_layout.addLayout(nav_layout)
+        self.btn_use_tpl = QPushButton("✔️ USE THIS TEMPLATE")
+        self.btn_use_tpl.setStyleSheet("background-color: #28a745; color: white; font-weight: bold; padding: 12px; font-size: 14px; border-radius: 4px;")
+        self.btn_use_tpl.setEnabled(False)
+        self.btn_use_tpl.clicked.connect(self.load_selected_template)
         
-        self.view_stack.addWidget(self.gallery_widget) # Insert into Layer 1
+        right_tpl_layout.addWidget(self.lbl_tpl_info)
+        right_tpl_layout.addWidget(self.tpl_preview, stretch=1)
+        right_tpl_layout.addWidget(self.btn_use_tpl)
+        
+        tpl_splitter.addWidget(right_tpl)
+        tpl_splitter.setSizes([350, 850])
+        gallery_layout.addWidget(tpl_splitter)
+        
+        self.view_stack.addWidget(self.gallery_widget) 
         
         self.view_stack.setCurrentIndex(0)
-        self.template_files = []
-        self.current_tpl_page = 0
+        self.selected_tpl_path = None
+        self.is_dirty = False 
 
         main_splitter.addWidget(left_panel); main_splitter.addWidget(right_panel)
 
-        main_splitter.setSizes([360, 1240])
+        main_splitter.setSizes([400, 1200])
         main_splitter.setStretchFactor(0, 0)
         main_splitter.setStretchFactor(1, 1)
         
@@ -625,16 +622,16 @@ class UniversalHTMLEditor(QMainWindow):
     def toggle_view_mode(self):
         self.is_edit_mode = not getattr(self, 'is_edit_mode', True)
         if self.is_edit_mode:
-            self.btn_toggle_mode.setText("🛠️ EDIT MODE (Click to view live)")
+            self.btn_toggle_mode.setText("🛠️ EDIT MODE (Click to Preview)")
             self.btn_toggle_mode.setStyleSheet("background-color: #d7ba7d; color: #1e1e1e; font-weight: bold; padding: 5px 15px; border-radius: 4px; font-size: 14px;")
             self.web_view.page().runJavaScript("window.isEditMode = true;")
-            self.statusBar().showMessage("🛠️ IN EDIT MODE: Right-click, Select tag, Safely edit text enabled.", 4000)
+            self.statusBar().showMessage("🛠️ IN EDIT MODE: Right-click, tag selection, and text editing are enabled.", 4000)
         else:
-            self.btn_toggle_mode.setText("👁️ VIEW MODE (Click to edit)")
+            self.btn_toggle_mode.setText("👁️ PREVIEW MODE (Click to Edit)")
             self.btn_toggle_mode.setStyleSheet("background-color: #28a745; color: white; font-weight: bold; padding: 5px 15px; border-radius: 4px; font-size: 14px;")
             self.clear_selection()
             self.web_view.page().runJavaScript("window.isEditMode = false; document.querySelectorAll('.editor-highlight').forEach(e => e.classList.remove('editor-highlight'));")
-            self.statusBar().showMessage("👁️ IN VIEW MODE: You can click Tabs, Accordions, Links... just like a real website!", 4000)
+            self.statusBar().showMessage("👁️ IN PREVIEW MODE: You can click tabs, accordions, links... just like a live webpage!", 4000)
 
     def clear_selection(self):
         self.current_node = None
@@ -642,39 +639,35 @@ class UniversalHTMLEditor(QMainWindow):
         self.tree.clearSelection()
         self.clear_form()
         self.lbl_breadcrumb.setText("📌 No tag selected")
-        
+
         js_clear = """
         (function() {
-            // 1. Remove all highlight borders
             document.querySelectorAll('.editor-highlight, .editor-hover').forEach(e => {
                 e.classList.remove('editor-highlight', 'editor-hover');
             });
-            // 2. Exit typing mode (contenteditable)
             if (window.currentEditingEl) {
                 window.currentEditingEl.removeAttribute('contenteditable');
                 window.currentEditingEl = null;
             }
-            // 3. Clear selected/highlighted text
             window.getSelection().removeAllRanges();
-            // 4. Remove mouse focus from the current element
             if (document.activeElement) {
                 document.activeElement.blur();
             }
         })();
         """
         self.web_view.page().runJavaScript(js_clear)
-        self.statusBar().showMessage("🚫 Selection cleared and interface released!", 3000)
+        self.statusBar().showMessage("🚫 Selection cleared and layout released!", 3000)
 
     def open_in_external_browser(self):
         if not self.current_file_path or not os.path.exists(self.current_file_path):
-            QMessageBox.warning(self, "No file", "You need to Open a file or Save a file before you can view it in an external browser!")
+            QMessageBox.warning(self, "No file found", "You need to Open or Save a file before viewing it in an external browser!")
             return
         
         from PySide6.QtGui import QDesktopServices
         from PySide6.QtCore import QUrl
         
         QDesktopServices.openUrl(QUrl.fromLocalFile(self.current_file_path))
-        self.statusBar().showMessage("🌍 File opened in the default browser!", 3000)
+        self.statusBar().showMessage("🌍 Opened file in default browser!", 3000)
 
     def get_relative_path(self, title, filter_str):
         if not self.current_file_path: return ""
@@ -686,12 +679,10 @@ class UniversalHTMLEditor(QMainWindow):
         try:
             return os.path.relpath(f_path, b_dir).replace('\\', '/')
         except ValueError:
-
             return f_path
 
     def browse_href_file(self):
-        # Extend the filter to allow selecting both HTML and Markdown (.md)
-        p = self.get_relative_path("Select File", "Documents (*.html *.htm *.md);;All Files (*.*)")
+        p = self.get_relative_path("Select File", "Documents (*.html *.htm *.md);;All files (*.*)")
         if p: self.inp_href.setText(p)
 
     def browse_src_file(self):
@@ -699,6 +690,8 @@ class UniversalHTMLEditor(QMainWindow):
         if p: self.inp_src.setText(p)
 
     def save_state_for_undo(self):
+        self.is_dirty = True
+        
         if not hasattr(self, 'undo_stack'): self.undo_stack = []
         if not hasattr(self, 'redo_stack'): self.redo_stack = []
         if self.soup:
@@ -708,61 +701,79 @@ class UniversalHTMLEditor(QMainWindow):
 
     def undo_action(self):
         if not hasattr(self, 'undo_stack') or not self.undo_stack:
-            self.statusBar().showMessage("Already at the oldest state, cannot go Back further!", 3000)
+            self.statusBar().showMessage("Oldest state reached, cannot Undo further!", 3000)
             return
         if not hasattr(self, 'redo_stack'): self.redo_stack = []
         
         self.redo_stack.append(str(self.soup))
         self.soup = self.parse_html(self.undo_stack.pop())
         self.refresh_tree(); self.update_preview()
-        self.statusBar().showMessage("⏪ Back (Undo) successful!", 3000)
+        self.statusBar().showMessage("⏪ Undo successful!", 3000)
 
     def redo_action(self):
         if not hasattr(self, 'redo_stack') or not self.redo_stack:
-            self.statusBar().showMessage("Already at the newest state, cannot go Forward further!", 3000)
+            self.statusBar().showMessage("Latest state reached, cannot Redo further!", 3000)
             return
         if not hasattr(self, 'undo_stack'): self.undo_stack = []
         
         self.undo_stack.append(str(self.soup))
         self.soup = self.parse_html(self.redo_stack.pop())
         self.refresh_tree(); self.update_preview()
-        self.statusBar().showMessage("⏩ Forward (Redo) successful!", 3000)
+        self.statusBar().showMessage("⏩ Redo successful!", 3000)
 
     def parse_html(self, content):
         try: return BeautifulSoup(content, 'lxml')
         except: return BeautifulSoup(content, 'html.parser')
 
+    def check_and_save_if_dirty(self):
+        if getattr(self, 'is_dirty', False):
+            reply = QMessageBox.question(
+                self,
+                "Unsaved Changes Warning",
+                "⚠️ The current project has UNSAVED CHANGES.\n\nDo you want to SAVE FILE before proceeding?",
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save
+            )
+            if reply == QMessageBox.StandardButton.Save:
+                self.save_file()
+                return True
+            elif reply == QMessageBox.StandardButton.Discard:
+                return True
+            else:
+                return False
+        return True
+
     def load_file_dialog(self):
+        if not self.check_and_save_if_dirty():
+            return
 
         if hasattr(self, 'view_stack'):
             self.view_stack.setCurrentIndex(0)
 
-        p, _ = QFileDialog.getOpenFileName(self, "Select HTML File", BASE_DIR, "HTML (*.html *.htm)")
+        p, _ = QFileDialog.getOpenFileName(self, "Open HTML File", BASE_DIR, "HTML (*.html *.htm)")
         if p:
             if not os.path.exists(p):
-                QMessageBox.warning(self, "Ghost File Warning", f"This file does not exist on disk!\nIt may have already been deleted, or it is a stray entry incorrectly shown by Windows Explorer.\nPath: {p}")
+                QMessageBox.warning(self, "Invalid File Warning", f"This file does not exist on disk!\nIt may have been deleted or is an invalid Explorer reference.\nPath: {p}")
                 return
                 
             try:
                 with open(p, 'r', encoding='utf-8', errors='ignore') as f:
                     self.soup = self.parse_html(f.read())
-                    
-                # --- AUTO CLEANUP: Scrub duplicated stray script tags left over from the old Tool version ---
+
                 for s in self.soup.find_all('script'):
                     if not s.has_attr('src') and not s.has_attr('id') and s.string and "EDITOR_SCROLL" in s.string:
                         s.decompose()
-                        
-                # FIX: Always lock the file using the Absolute Path
+
                 self.current_file_path = os.path.abspath(p)
-                
-                # Reinitialize the Undo/Redo stack when opening a new file
+
                 if hasattr(self, 'undo_stack'): self.undo_stack.clear()
                 if hasattr(self, 'redo_stack'): self.redo_stack.clear()
                 
+                self.is_dirty = False
                 self.lbl_current_file.setText(f"Viewing: <b>{os.path.basename(p)}</b>")
                 self.refresh_tree(); self.update_preview()
             except Exception as e:
-                QMessageBox.critical(self, "Error Opening File", f"Could not read this file:\n{str(e)}")
+                QMessageBox.critical(self, "File Open Error", f"Unable to read file:\n{str(e)}")
 
     def format_node_title(self, child):
         icons = {'div':'📦', 'section':'🧱', 'a':'🔗', 'img':'🖼️', 'button':'🔘', 'p':'💬'}
@@ -803,12 +814,12 @@ class UniversalHTMLEditor(QMainWindow):
     def clear_form(self):
         for w in [self.inp_tag, self.inp_id, self.inp_class, self.inp_style, self.inp_data_trang, self.inp_href, self.inp_src]: 
             w.clear()
-            
-        self.inp_text.page().runJavaScript("if(window.editor) { window.editor.setValue('<!-- Select a tag to view the HTML code -->'); }")
+
+        self.inp_text.page().runJavaScript("if(window.editor) { window.editor.setValue('<!-- Select a tag to view HTML code -->'); }")
         
         for w in [self.inp_href, self.inp_src, self.btn_browse_href, self.btn_browse_src]: 
             w.setEnabled(False)
-            
+
         if hasattr(self, 'lbl_src'):
             self.lbl_src.setVisible(False)
             self.w_src.setVisible(False)
@@ -820,13 +831,13 @@ class UniversalHTMLEditor(QMainWindow):
         if not tag or not isinstance(tag, Tag): return
         
         self.current_node = tag
-        self.last_active_eid = eid 
+        self.last_active_eid = eid
         
         self.inp_tag.setText(tag.name)
         self.inp_id.setText(tag.get('id', ''))
         cl = tag.get('class')
         self.inp_class.setText(" ".join(cl) if isinstance(cl, list) else (cl or ""))
-        
+
         style_str = tag.get('style', '')
         if isinstance(style_str, list): style_str = " ".join(style_str)
         formatted_css = ""
@@ -840,7 +851,7 @@ class UniversalHTMLEditor(QMainWindow):
         self.inp_data_trang.setText(tag.get('data-trang', '')) 
         self.inp_href.setText(tag.get('href', ''))
         self.inp_src.setText(tag.get('src', ''))
-        
+
         raw_html = tag.decode_contents()
         b64_html = base64.b64encode(raw_html.encode('utf-8')).decode('utf-8')
         inject_js = f"if(window.editor) {{ window.editor.setValue(decodeURIComponent(escape(window.atob('{b64_html}')))); }}"
@@ -848,7 +859,7 @@ class UniversalHTMLEditor(QMainWindow):
 
         is_l = tag.name in ['a', 'link']
         is_m = tag.name in ['img', 'script', 'iframe', 'video']
-        is_f = tag.name == 'form' # <--- Added Form detection
+        is_f = tag.name == 'form'
 
         self.inp_href.setEnabled(is_l)
         self.btn_browse_href.setEnabled(is_l)
@@ -886,7 +897,6 @@ class UniversalHTMLEditor(QMainWindow):
 
         data_trang = tag.get('data-trang')
         if data_trang:
-
             main_container = self.soup.find('main') or self.soup.find(class_='vung-noi-dung-chinh') or self.soup.find('body')
             if main_container:
                 for page in main_container.find_all(class_='trang-noi-dung'):
@@ -933,22 +943,18 @@ class UniversalHTMLEditor(QMainWindow):
             self.statusBar().showMessage(f"👁️ Opened workspace: {data_trang}", 3000)
 
         if eid:
-            # --- ULTIMATE FIX TO SAVE COPY/PASTE: Preserve the currently highlighted text region ---
             js = f"""
             (function() {{
                 var sel = window.getSelection();
                 var ranges = [];
-                // 1. Store the highlighted region in a safe
                 if (sel && sel.rangeCount > 0) {{
                     for(var i=0; i<sel.rangeCount; i++) ranges.push(sel.getRangeAt(i));
                 }}
                 
-                // 2. Change the CSS class that draws the blue border
                 document.querySelectorAll('.editor-highlight').forEach(e => e.classList.remove('editor-highlight')); 
                 var el = document.querySelector('[data-editor-id="{eid}"]'); 
                 if(el) {{ el.classList.add('editor-highlight'); }}
                 
-                // 3. Restore the highlighted region for the user
                 if (sel && ranges.length > 0) {{
                     sel.removeAllRanges();
                     ranges.forEach(r => sel.addRange(r));
@@ -966,7 +972,7 @@ class UniversalHTMLEditor(QMainWindow):
 
     def on_visual_input_changed(self):
         self.inp_style.blockSignals(True)
-        
+
         w = self.css_width.text().strip()
         h = self.css_height.text().strip()
         p = self.css_padding.text().strip()
@@ -1016,7 +1022,6 @@ class UniversalHTMLEditor(QMainWindow):
                 widget.setText(value)
             widget.blockSignals(False)
 
-        # Automatically extract keys like width, height... to populate the Form.
         set_silent(self.css_width, style_dict.get('width', ''))
         set_silent(self.css_height, style_dict.get('height', ''))
         set_silent(self.css_padding, style_dict.get('padding', ''))
@@ -1038,6 +1043,7 @@ class UniversalHTMLEditor(QMainWindow):
     def update_style_property(self, prop, val):
         current_css = self.inp_style.toPlainText().strip()
         if current_css and not current_css.endswith(';'): current_css += ';'
+
         self.inp_style.setPlainText(current_css + f"\n{prop}: {val};")
         self.apply_changes()
 
@@ -1055,12 +1061,10 @@ class UniversalHTMLEditor(QMainWindow):
 
             is_img = self.current_node.name in ['img', 'video', 'iframe']
 
-           
             if h and h != '0px' and not is_img:
                 style_dict['min-height'] = h
                 if 'height' in style_dict: del style_dict['height']
 
-            
             if w and w != '0px':
                 is_flex_child = False
                 
@@ -1071,14 +1075,13 @@ class UniversalHTMLEditor(QMainWindow):
                         is_flex_child = True
 
                 if is_img:
-                   
                     style_dict['width'] = w
                     if h and h != '0px':
                         style_dict['height'] = h
                     else:
                         style_dict['height'] = 'auto'
                     
-                    style_dict['max-width'] = '100%' # Keep Responsive so it doesn't overflow on mobile screens
+                    style_dict['max-width'] = '100%'
                     if 'flex' in style_dict: del style_dict['flex']
 
                 elif is_flex_child:
@@ -1098,7 +1101,7 @@ class UniversalHTMLEditor(QMainWindow):
 
             self.css_width.blockSignals(True)
             self.css_height.blockSignals(True)
-            
+
             if 'flex' in style_dict: self.css_width.setText(style_dict['flex'].replace('0 0 ', ''))
             elif 'width' in style_dict: self.css_width.setText(style_dict['width'])
             
@@ -1109,15 +1112,15 @@ class UniversalHTMLEditor(QMainWindow):
             self.css_width.blockSignals(False)
             self.css_height.blockSignals(False)
             
-            self.statusBar().showMessage("🔒 New size applied! Adjacent tags have automatically resized accordingly.", 5000)
+            self.statusBar().showMessage("🔒 New dimensions applied! Adjacent elements scaled automatically.", 5000)
 
     def sync_drag_pos_from_web(self, eid, left, top):
         target = self.soup.find(attrs={"data-editor-id": eid})
         if target:
-            self.save_state_for_undo() 
+            self.save_state_for_undo()
             st = str(target.get('style', ''))
             import re
-            
+
             st = re.sub(r'left:\s*[^;]+;?', '', st)
             st = re.sub(r'top:\s*[^;]+;?', '', st)
             st = st.strip(';') + ("; " if st else "") + f"left: {left}; top: {top};"
@@ -1131,34 +1134,28 @@ class UniversalHTMLEditor(QMainWindow):
                 
             self.statusBar().showMessage("🛸 New position coordinates saved!", 3000)
 
-
     def exec_text_cmd(self, cmd, val=None):
         self.save_state_for_undo()
         val_str = f", '{val}'" if val else ", null"
         
         js = f"""
         (function() {{
-            // 1. Retrieve the highlighted region saved on right-click
             if (window.lastSelectionRange) {{
                 var sel = window.getSelection();
                 sel.removeAllRanges();
                 sel.addRange(window.lastSelectionRange);
             }}
-            
-            // 2. Force the text container into edit state so execCommand works
             var node = window.getSelection().anchorNode;
             if (node) {{
                 var el = node.nodeType === 3 ? node.parentNode : node;
                 var ce = el.closest('[data-editor-id]');
                 if (ce) ce.setAttribute('contenteditable', 'true');
             }}
-            
-            // 3. Execute the command
             document.execCommand('{cmd}', false{val_str});
         }})();
         """
         self.web_view.page().runJavaScript(js, 0, lambda r: self.sync_from_preview())
-        self.statusBar().showMessage(f"📝 Text formatted ({cmd})!", 3000)
+        self.statusBar().showMessage(f"📝 Applied text format ({cmd})!", 3000)
 
     def change_font_size(self, t, delta):
         self.save_state_for_undo()
@@ -1178,7 +1175,28 @@ class UniversalHTMLEditor(QMainWindow):
         item = self.tree.currentItem()
         if item: self.on_item_clicked(item, 0)
         self.apply_changes()
-        self.statusBar().showMessage(f"📏 Font size of entire tag changed to {new_size}px", 3000)
+        self.statusBar().showMessage(f"📏 Changed element font size to {new_size}px", 3000)
+
+    def change_font_family(self, t):
+        from PySide6.QtWidgets import QFontDialog
+        ok, font = QFontDialog.getFont(self)
+        if ok and font:
+            self.save_state_for_undo()
+            font_name = font.family()
+            st = str(t.get('style', '')).strip()
+            import re
+
+            if 'font-family:' in st.lower():
+                new_st = re.sub(r'font-family:\s*[^;]+;?', f"font-family: '{font_name}', sans-serif;", st, flags=re.IGNORECASE)
+            else:
+                new_st = st.strip(';') + ("; " if st else "") + f"font-family: '{font_name}', sans-serif;"
+                
+            t['style'] = new_st.strip('; ')
+            
+            item = self.tree.currentItem()
+            if item: self.on_item_clicked(item, 0)
+            self.apply_changes()
+            self.statusBar().showMessage(f"🔤 Applied new Font Family: {font_name}", 4000)
 
     def change_text_align(self, t, align):
         self.save_state_for_undo()
@@ -1193,7 +1211,7 @@ class UniversalHTMLEditor(QMainWindow):
         item = self.tree.currentItem()
         if item: self.on_item_clicked(item, 0)
         self.apply_changes()
-        self.statusBar().showMessage(f"Text alignment: {align}", 3000)
+        self.statusBar().showMessage(f"Text align: {align}", 3000)
 
     def insert_quick_html(self, t, html_str):
         self.save_state_for_undo()
@@ -1204,12 +1222,12 @@ class UniversalHTMLEditor(QMainWindow):
                 
         self.refresh_tree()
         self.update_preview()
-        self.statusBar().showMessage("➕ New text box added!", 3000)
+        self.statusBar().showMessage("➕ Added new text block!", 3000)
 
     def insert_floating_textbox(self, t):
         html = '''<div style="position: relative; padding: 15px; margin: 10px 0; background: rgba(255,255,255,0.05); border: none; color: inherit; resize: both; overflow: auto; min-height: 100px; min-width: 150px; border-radius: 8px;">
             <h3 style="margin-top:0; color:#007acc;">Box Title</h3>
-            <p>Enter free-form text content. Note the handle in the bottom-right corner lets you resize the box!</p>
+            <p>Enter free-form text content here. Use the handle at the bottom right corner to resize this box!</p>
         </div>'''
         self.insert_quick_html(t, html)
 
@@ -1222,13 +1240,13 @@ class UniversalHTMLEditor(QMainWindow):
         
         if 'border:' in st and 'none' not in st:
             st = re.sub(r'border:[^;]+;', 'border: none;', st)
-            msg = "🚫 Box border disabled!"
+            msg = "🚫 Turned border OFF!"
         elif 'border: none' in st:
             st = st.replace('border: none;', 'border: 2px dashed #007acc;')
-            msg = "🔲 Box border enabled!"
+            msg = "🔲 Turned border ON!"
         else:
             st += " border: 2px dashed #007acc;"
-            msg = "🔲 Box border enabled!"
+            msg = "🔲 Turned border ON!"
             
         t['style'] = st.strip('; ')
         
@@ -1247,6 +1265,7 @@ class UniversalHTMLEditor(QMainWindow):
         self.inp_text.page().runJavaScript("window.editor ? window.editor.getValue() : ''", 0, self._process_apply_changes)
 
     def _process_apply_changes(self, editor_html):
+        self.is_dirty = True
         self.save_state_for_undo()
         t = self.current_node
 
@@ -1298,7 +1317,7 @@ class UniversalHTMLEditor(QMainWindow):
             i.setText(0, self.format_node_title(t))
             i.takeChildren()
             self.build_dom_tree(i, t, 99)
-            i.setExpanded(True)          
+            i.setExpanded(True)            
 
         if t.name not in ['body', 'html']:
             eid = t.get('data-editor-id')
@@ -1313,52 +1332,291 @@ class UniversalHTMLEditor(QMainWindow):
                     var newEl = temp.firstElementChild;
                     if(newEl) {{
                         el.replaceWith(newEl);
-                        // Re-activate the blue border hugging the tag after replacement
                         setTimeout(() => newEl.classList.add('editor-highlight'), 50);
                     }}
                 }}
             }})();
             """
             self.web_view.page().runJavaScript(js)
-            self.statusBar().showMessage("✅ Changes updated (No page reload at all)!", 3000)
+            self.statusBar().showMessage("✅ Changes updated (Seamless inline update without reload)!", 3000)
         else:
             self.update_preview()
-            self.statusBar().showMessage("✅ Entire page reloaded!", 3000)
+            self.statusBar().showMessage("✅ Full page reloaded!", 3000)
+
+    def make_html_mobile_responsive(self, soup_obj):
+        """Clean-Sweep Engine: Removes legacy noise & injects Mobile Responsive CSS/JS v11.0"""
+        if not soup_obj: return
+        
+        head = soup_obj.find('head')
+        if not head:
+            head = soup_obj.new_tag('head')
+            if soup_obj.html: soup_obj.html.insert(0, head)
+
+        for old_meta in soup_obj.find_all('meta', attrs={'name': 'viewport'}):
+            old_meta.decompose()
+        meta_vp = soup_obj.new_tag('meta', attrs={'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes'})
+        head.insert(0, meta_vp)
+
+        garbage_ids = [
+            'miniapp-base-css', 'universal-mobile-reset', 'universal-mobile-reset-css',
+            'mobile-responsive-css', 'universal-mobile-engine-js', 'magic-mobile-runtime',
+            'miniapp-nav-script', 'clean-mobile-engine-css', 'clean-spa-nav-js'
+        ]
+        for g_id in garbage_ids:
+            old_el = soup_obj.find(id=g_id)
+            if old_el: old_el.decompose()
+        resp_style = soup_obj.new_tag('style', id='clean-mobile-engine-css')
+        resp_style.string = """
+* { box-sizing: border-box !important; }
+img, video, iframe, embed, object, svg { max-width: 100% !important; height: auto !important; object-fit: contain; }
+html, body { overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+
+@media screen and (max-width: 768px) {
+    body {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: auto !important;
+        overflow-y: auto !important;
+    }
+    
+    aside, .thanh-dieu-huong, [class*="dieu-huong"], [class*="sidebar"] {
+        position: relative !important;
+        left: auto !important; top: auto !important; right: auto !important; bottom: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 20px 15px !important;
+        z-index: 10 !important;
+        border-right: none !important;
+        border-bottom: 2px solid #2a3441 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    main, .vung-noi-dung-chinh, [class*="noi-dung-chinh"], [class*="main-content"] {
+        position: relative !important;
+        left: auto !important; top: auto !important; right: auto !important; bottom: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 25px 15px !important;
+        z-index: 1 !important;
+        display: block !important;
+        overflow: visible !important;
+    }
+
+    .trang-noi-dung { display: none !important; }
+    .trang-noi-dung.hien-thi,
+    .trang-noi-dung.trang-dang-hien-thi,
+    .trang-noi-dung[style*="display: block"],
+    .trang-noi-dung[style*="display:block"] {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .dashboard-layout, .row-wrap, .grid-wrap, .card-wrap, .luoi-noi-dung,
+    [class*="header-box"], [class*="content-box"], [class*="app-content"],
+    [class*="khung-app"], [class*="goi-giong"], [class*="chia-"],
+    [style*="display: flex"], [style*="display:flex"],
+    [style*="display: grid"], [style*="display:grid"] {
+        display: flex !important;
+        flex-direction: column !important;
+        flex-wrap: wrap !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        gap: 15px !important;
+    }
+
+    .app-media, .app-article, .app-header-text, .app-header-logo,
+    .the-ung-dung, .card, .col, [class*="grid-item"],
+    [class*="header-box"] > *, [class*="content-box"] > *,
+    .luoi-noi-dung > *, .card-wrap > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .app-header-logo, .vung-logo {
+        margin: 10px auto !important;
+        align-self: center !important;
+    }
+
+    a:not(.card *), button, li, span, label, input, select, textarea, .menu-con, .mui-ten,
+    .pagination, .pagination *, .nut-phan-trang, .nav-phan-trang, .nut-bam, .nut-menu {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    a.nut-chuyen-trang, a[class*="nut-menu"], .nut-mo-menu-con, .tieu-de-muc-lon {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+    }
+
+    table {
+        display: block !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    p, h1, h2, h3, h4, h5, h6, span, a, li, td, th {
+        word-break: normal !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+    }
+}
+"""
+        head.append(resp_style)
+
+        nav_js = soup_obj.new_tag('script', id='clean-spa-nav-js')
+        nav_js.string = """
+document.addEventListener('DOMContentLoaded', function() {
+    var pageIds = [];
+    document.querySelectorAll('[data-trang]').forEach(function(btn) {
+        var tId = btn.getAttribute('data-trang');
+        if (tId && pageIds.indexOf(tId) === -1) pageIds.push(tId);
+    });
+    document.body.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-trang]');
+        if (btn) {
+            var targetId = btn.getAttribute('data-trang');
+            var targetPage = document.getElementById(targetId);
+            if (targetPage) {
+                e.preventDefault();
+                document.querySelectorAll('.trang-noi-dung').forEach(function(p) {
+                    p.classList.remove('hien-thi', 'trang-dang-hien-thi');
+                    p.style.setProperty('display', 'none', 'important');
+                });
+                targetPage.classList.add('hien-thi', 'trang-dang-hien-thi');
+                targetPage.style.setProperty('display', 'block', 'important');
+                document.querySelectorAll('[data-trang]').forEach(function(b) {
+                    b.classList.remove('dang-chon', 'menu-dang-chon');
+                });
+                document.querySelectorAll('[data-trang="' + targetId + '"]').forEach(function(ab) {
+                    ab.classList.add('dang-chon', 'menu-dang-chon');
+                });
+                window.scrollTo({ top: 0, behavior: 'instant' });
+            }
+        }
+    });
+});
+"""
+        if soup_obj.body:
+            soup_obj.body.append(nav_js)
+
+    def check_and_warn_legacy_template(self, soup_obj):
+        if not soup_obj or getattr(self, '_legacy_warned', False):
+            return
+            
+        legacy_keywords = [
+            'skel.min.js', 'skel.js', 'skel-layers', 'skel-viewport',
+            'jquery.scrollex', 'jquery.scrolly', 'jquery.dropotron', 'breakpoints.min.js'
+        ]
+        
+        is_legacy = False
+        for s in soup_obj.find_all('script'):
+            src = str(s.get('src', '')).lower()
+            content = str(s.string or '').lower()
+            if any(k in src for k in legacy_keywords) or any(k in content for k in ['skel.', '.scrollex', '.scrolly']):
+                is_legacy = True
+                break
+                
+        if is_legacy:
+            self._legacy_warned = True
+            QMessageBox.warning(
+                self,
+                "⚠️ Outdated HTML Template Warning",
+                "This HTML template uses outdated JavaScript libraries (Skel.js / jQuery Scrollex...)\n\n"
+                "• These frameworks conflict with modern Chromium standards (Passive Event Listeners) and can cause scrolling freezes or glitches.\n"
+                "• The tool still allows you to view the layout and edit Text/CSS, but dynamic scrolling animations may not work properly.\n\n"
+                "👉 RECOMMENDATION: Select an HTML5 / Modern CSS template from the Library for the best experience!"
+            )
+
+    def unlock_legacy_preloader(self, soup_obj):
+        if not soup_obj: return
+        body = soup_obj.find('body')
+        if body and body.get('class'):
+            classes = body.get('class')
+            if isinstance(classes, str): classes = classes.split()
+            clean_classes = [c for c in classes if c not in ['is-preload', 'is-loading', 'is-resizing', 'is-preload-0', 'is-preload-1']]
+            if clean_classes: body['class'] = clean_classes
+            else: del body['class']
+
+        head = soup_obj.find('head')
+        if not head:
+            head = soup_obj.new_tag('head')
+            if soup_obj.html: soup_obj.html.insert(0, head)
+
+        css_id = "universal-template-force-show-css"
+        if not soup_obj.find(id=css_id):
+            force_show_css = soup_obj.new_tag('style', id=css_id)
+            force_show_css.string = """
+            html, body {
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                height: auto !important;
+                min-height: 100% !important;
+                position: relative !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+            #preloader, #loader, .preloader, .spinner, [class*="preloader"] {
+                display: none !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+            body > * { pointer-events: auto !important; }
+            """
+            head.append(force_show_css)
 
     def update_preview(self):
         if not self.soup: return
-        html = str(self.soup)
-        
-        if 'name="viewport"' not in html.lower():
-            meta_tag = '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">'
-            if '<head>' in html.lower():
-                html = html.replace('<head>', f'<head>\n    {meta_tag}')
-            else:
-                html = html.replace('<html>', f'<html>\n<head>\n    {meta_tag}\n</head>')
 
-        # Inject the Tool current state into JS
+        self.check_and_warn_legacy_template(self.soup)
+
+        self.unlock_legacy_preloader(self.soup)
+        self.make_html_mobile_responsive(self.soup)
+        
+        html = str(self.soup)
         edit_mode_str = 'true' if getattr(self, 'is_edit_mode', True) else 'false'
 
         js = f"""
         <style id="mini-app-editor-style">
             * {{ box-sizing: border-box !important; }}
-            img, video, iframe {{ max-width: 100% !important; height: auto !important; object-fit: contain; }}
-            p, h1, h2, h3, h4, h5, h6, span, div, a {{ max-width: 100%; word-wrap: break-word !important; overflow-wrap: break-word !important; }}
             .editor-highlight {{ outline: 3px solid #007acc !important; box-shadow: inset 0 0 15px rgba(0,122,204,0.4) !important; transition: outline 0.2s, box-shadow 0.2s; }}
-            .editor-hover {{ outline: 2px dashed #ff9800 !important; cursor: crosshair !important; transition: outline 0.1s; }}
+            .editor-hover {{ outline: 2px dashed #ff9800 !important; cursor: pointer !important; transition: outline 0.1s; }}
             [contenteditable="true"] {{ outline: 2px dashed #4CAF50 !important; cursor: text !important; }}
-            html, body {{ overflow-x: hidden !important; }}
+            body.is-edit-mode img, body.is-edit-mode a {{ -webkit-user-drag: none !important; user-drag: none !important; }}
+            body.is-edit-mode * {{ -webkit-user-select: none !important; user-select: none !important; }}
+            body.is-edit-mode [contenteditable="true"], body.is-edit-mode [contenteditable="true"] * {{ -webkit-user-select: text !important; user-select: text !important; cursor: text !important; }}
         </style>
         <script id="mini-app-editor-script">
             window.lastClickTarget = null;
             window.currentEditingEl = null;
             window.lastSelectionRange = null; 
-            window.isEditMode = {edit_mode_str}; // <--- ULTIMATE CONTROL VARIABLE
+            window.isEditMode = {edit_mode_str};
             
-            let lastWidth = "";
-            let lastHeight = "";
+            setInterval(function() {{
+                if(window.isEditMode) document.body.classList.add('is-edit-mode');
+                else document.body.classList.remove('is-edit-mode');
+            }}, 200);
 
-            /* --- FLOATING IMAGE DRAG ENGINE (FREE FLOATING) --- */
+            document.addEventListener('dragstart', function(e) {{
+                if(window.isEditMode && (!e.target.classList || !e.target.classList.contains('free-floating-element'))) {{
+                    e.preventDefault();
+                }}
+            }}, true);
+
+            let lastWidth = "", lastHeight = "";
             let activeDragEl = null;
             let startMouseX = 0, startMouseY = 0;
             let startElLeft = 0, startElTop = 0;
@@ -1366,30 +1624,22 @@ class UniversalHTMLEditor(QMainWindow):
             document.addEventListener('mousedown', function(e) {{ 
                 if(!window.isEditMode) return; 
                 window.focus(); 
-                
                 var t = e.target;
                 if(t.classList && t.classList.contains('free-floating-element')) {{
                     activeDragEl = t;
-                    startMouseX = e.clientX;
-                    startMouseY = e.clientY;
-                    // Get the current position of the tag
+                    startMouseX = e.clientX; startMouseY = e.clientY;
                     startElLeft = parseFloat(window.getComputedStyle(t).left) || 0;
                     startElTop = parseFloat(window.getComputedStyle(t).top) || 0;
-                    e.preventDefault(); // Block the browser's default image drag behavior
-                    return;
+                    e.preventDefault(); return;
                 }}
-                
                 var hl = document.querySelector('.editor-highlight'); 
                 if (hl) {{ lastWidth = hl.style.width; lastHeight = hl.style.height; }} 
             }}, true);
             
             document.addEventListener('mousemove', function(e) {{
                 if(!window.isEditMode) return;
-                
-                // Drag & Drop algorithm
                 if (activeDragEl) {{
-                    var dx = e.clientX - startMouseX;
-                    var dy = e.clientY - startMouseY;
+                    var dx = e.clientX - startMouseX; var dy = e.clientY - startMouseY;
                     activeDragEl.style.left = (startElLeft + dx) + 'px';
                     activeDragEl.style.top = (startElTop + dy) + 'px';
                 }}
@@ -1397,31 +1647,24 @@ class UniversalHTMLEditor(QMainWindow):
 
             document.addEventListener('mouseup', function(e) {{
                 if(!window.isEditMode) return;
-                
                 if (activeDragEl) {{
                     var eid = activeDragEl.getAttribute('data-editor-id');
-                    var finalLeft = activeDragEl.style.left;
-                    var finalTop = activeDragEl.style.top;
-                    if(eid) console.log("EDITOR_DRAG_POS:" + eid + "|" + finalLeft + "|" + finalTop);
-                    activeDragEl = null;
-                    return;
+                    if(eid) console.log("EDITOR_DRAG_POS:" + eid + "|" + activeDragEl.style.left + "|" + activeDragEl.style.top);
+                    activeDragEl = null; return;
                 }}
-                
                 var hl = document.querySelector('.editor-highlight');
                 if (hl) {{
-                    var w = hl.style.width;
-                    var h = hl.style.height;
+                    var w = hl.style.width; var h = hl.style.height;
                     if (w !== lastWidth || h !== lastHeight) {{
                         var eid = hl.getAttribute('data-editor-id');
                         if(eid) console.log("EDITOR_RESIZE:" + eid + "|" + w + "|" + h);
-                        lastWidth = w;
-                        lastHeight = h;
+                        lastWidth = w; lastHeight = h;
                     }}
                 }}
             }}, true);
 
             document.addEventListener('mouseover', function(e) {{
-                if(!window.isEditMode || activeDragEl) return; // Lock border while dragging
+                if(!window.isEditMode || activeDragEl) return;
                 var eid = e.target.getAttribute('data-editor-id');
                 if(!eid) {{
                     var hl = e.target.closest('[data-editor-id]');
@@ -1442,15 +1685,13 @@ class UniversalHTMLEditor(QMainWindow):
             document.addEventListener('submit', function(e) {{
                 if(!window.isEditMode) return;
                 e.preventDefault();
-                console.log("EDITOR_HINT:🚫 Form Submit was blocked in Edit Mode.");
+                console.log("EDITOR_HINT:🚫 Form Submit is disabled in Edit Mode.");
             }}, true);
 
             document.addEventListener('click', function(e) {{ 
                 if(!window.isEditMode) return;
-                
                 var aTag = e.target.closest('a');
                 var btnTag = e.target.closest('button');
-                
                 if (aTag || btnTag) {{
                     e.preventDefault();
                     if (aTag) {{
@@ -1458,20 +1699,16 @@ class UniversalHTMLEditor(QMainWindow):
                         if (href && (e.ctrlKey || e.metaKey)) {{
                             console.log("EDITOR_OPEN_LINK:" + href);
                         }} else if (href && href !== '#' && !href.startsWith('javascript:')) {{
-                            console.log("EDITOR_HINT:💡 In EDIT mode so the Tool blocks page navigation! Switch to VIEW mode or hold Ctrl+Click to test.");
+                            console.log("EDITOR_HINT:💡 In Edit Mode, page navigation is blocked!");
                         }}
                     }}
                 }}
-
                 var t = e.target;
                 if (window.currentEditingEl && window.currentEditingEl.contains(t)) return; 
-                
                 if (window.currentEditingEl) {{
                     window.currentEditingEl.removeAttribute('contenteditable');
                     window.currentEditingEl = null;
-                    console.log("EDITOR_HINT:✅ Text saved locally.");
                 }}
-
                 if(t.tagName==='IMG' || t.querySelector('img')) window.lastClickTarget = t;
                 var eid = t.getAttribute('data-editor-id');
                 var hl = t;
@@ -1488,14 +1725,11 @@ class UniversalHTMLEditor(QMainWindow):
                 if(!window.isEditMode) return;
                 var t = e.target;
                 var forbiddenTags = ['BODY', 'HTML', 'IMG', 'HR', 'BR', 'INPUT', 'VIDEO', 'IFRAME']; 
-                
                 if (!forbiddenTags.includes(t.tagName) && !t.classList.contains('free-floating-element')) {{
-                    e.preventDefault();
-                    e.stopPropagation(); 
+                    e.preventDefault(); e.stopPropagation(); 
                     t.setAttribute('contenteditable', 'true');
                     t.focus();
                     window.currentEditingEl = t;
-                    console.log("EDITOR_EDIT_MODE:"); 
                 }}
             }}, true);
             
@@ -1503,14 +1737,12 @@ class UniversalHTMLEditor(QMainWindow):
                 if(!window.isEditMode) return;
                 e.preventDefault();
                 window.lastContextTarget = e.target;
-                
                 var sel = window.getSelection();
                 if(sel.rangeCount > 0 && sel.toString().trim() !== "") {{
                     window.lastSelectionRange = sel.getRangeAt(0);
                 }} else {{
                     window.lastSelectionRange = null;
                 }}
-                
                 var t = e.target;
                 var eid = t.getAttribute('data-editor-id');
                 var hl = t;
@@ -1525,7 +1757,6 @@ class UniversalHTMLEditor(QMainWindow):
         </script>"""
         
         js = js.replace('\xa0', ' ')
-
         sx = getattr(self, 'current_scroll_x', 0)
         sy = getattr(self, 'current_scroll_y', 0)
         active_eid = getattr(self, 'last_active_eid', "")
@@ -1558,15 +1789,21 @@ class UniversalHTMLEditor(QMainWindow):
                 }});
             }})();
         """
-        
         js = js.replace("</script>", f"{scroll_fix_js}\n        </script>")
-        
         html = html.replace("</body>", f"{js}\n</body>") if "</body>" in html else html + js
-        
-        self.web_view.setHtml(html, QUrl.fromLocalFile(os.path.abspath(self.current_file_path)) if self.current_file_path else QUrl())
+
+        base_dir = None
+        if getattr(self, 'current_file_path', None) and os.path.exists(self.current_file_path):
+            base_dir = os.path.dirname(os.path.abspath(self.current_file_path))
+        elif getattr(self, 'current_base_dir', None) and os.path.exists(self.current_base_dir):
+            base_dir = self.current_base_dir
+        else:
+            base_dir = BASE_DIR
+            
+        base_url = QUrl.fromLocalFile(os.path.join(base_dir, "index.html"))
+        self.web_view.setHtml(html, base_url)
 
     def save_file(self):
-
         self.kbd_save()
 
     def _callback_save(self, html):
@@ -1583,16 +1820,17 @@ class UniversalHTMLEditor(QMainWindow):
         self.web_view.page().runJavaScript("document.documentElement.outerHTML", 0, self._callback_save)
 
     def kbd_save_as(self):
-        self.statusBar().showMessage("🔄 Syncing and preparing new save...", 2000)
+        self.statusBar().showMessage("🔄 Syncing and preparing to save as new file...", 2000)
         self.web_view.page().runJavaScript("document.documentElement.outerHTML", 0, self._callback_save_as)
 
     def execute_save(self, filepath):
         if not filepath: return
-        
         try:
             filepath = os.path.abspath(filepath)
-            
             cl_soup = self.parse_html(str(self.soup))
+
+            self.make_html_mobile_responsive(cl_soup)
+            
             for t in cl_soup.find_all(True):
                 if 'data-editor-id' in t.attrs: del t['data-editor-id']
                 if 'data-locked' in t.attrs: del t['data-locked']
@@ -1600,92 +1838,39 @@ class UniversalHTMLEditor(QMainWindow):
                     t['class'].remove('editor-highlight')
                     if not t['class']: del t['class']
             
-            head = cl_soup.find('head')
-            if not head:
-                head = cl_soup.new_tag('head')
-                if cl_soup.html: cl_soup.html.insert(0, head)
-                
-            if not cl_soup.find(id='miniapp-base-css'):
-                base_css = cl_soup.new_tag('style', id='miniapp-base-css')
-                base_css.string = "\n        * { box-sizing: border-box; }\n        img, video, iframe { max-width: 100%; height: auto; object-fit: contain; }\n        p, h1, h2, h3, h4, h5, h6, span, div, a { max-width: 100%; overflow-wrap: break-word; }\n        html, body { overflow-x: hidden; }\n    "
-                head.append(base_css)
-                
-            if not cl_soup.find(id='miniapp-nav-script'):
-                nav_js = cl_soup.new_tag('script', id='miniapp-nav-script')
-                nav_js.string = """
-        document.addEventListener('DOMContentLoaded', function() {
-            var pageIds = [];
-            document.querySelectorAll('[data-trang]').forEach(function(btn) {
-                var tId = btn.getAttribute('data-trang');
-                if (tId && pageIds.indexOf(tId) === -1) pageIds.push(tId);
-            });
-            document.body.addEventListener('click', function(e) {
-                var btn = e.target.closest('[data-trang]');
-                if (btn) {
-                    var targetId = btn.getAttribute('data-trang');
-                    var targetPage = document.getElementById(targetId);
-                    if (targetPage) {
-                        e.preventDefault();
-                        pageIds.forEach(function(id) {
-                            var p = document.getElementById(id);
-                            if (p) {
-                                p.classList.remove('trang-dang-hien-thi');
-                                p.style.setProperty('display', 'none', 'important');
-                            }
-                        });
-                        targetPage.classList.add('trang-dang-hien-thi');
-                        targetPage.style.setProperty('display', 'block', 'important');
-                        
-                        document.querySelectorAll('[data-trang]').forEach(function(b) {
-                            b.classList.remove('menu-dang-chon');
-                        });
-                        document.querySelectorAll('[data-trang="' + targetId + '"]').forEach(function(ab){ 
-                            ab.classList.add('menu-dang-chon'); 
-                        });
-                    }
-                }
-            });
-        });
-    """
-                if cl_soup.body: cl_soup.body.append(nav_js)
+            old_nav = cl_soup.find(id='miniapp-nav-script')
+            if old_nav: old_nav.decompose()
             
-            pretty_html = cl_soup.prettify()
+            nav_js = cl_soup.new_tag('script', id='miniapp-nav-script')
+            nav_js.string = "document.addEventListener('DOMContentLoaded',function(){var pageIds=[];document.querySelectorAll('[data-trang]').forEach(function(btn){var tId=btn.getAttribute('data-trang');if(tId&&pageIds.indexOf(tId)===-1)pageIds.push(tId);});document.body.addEventListener('click',function(e){var btn=e.target.closest('[data-trang]');if(btn){var targetId=btn.getAttribute('data-trang');var targetPage=document.getElementById(targetId);if(targetPage){e.preventDefault();pageIds.forEach(function(id){var p=document.getElementById(id);if(p){p.classList.remove('trang-dang-hien-thi');p.style.setProperty('display','none','important');}});targetPage.classList.add('trang-dang-hien-thi');targetPage.style.setProperty('display','block','important');document.querySelectorAll('[data-trang]').forEach(function(b){b.classList.remove('menu-dang-chon');});document.querySelectorAll('[data-trang=\"'+targetId+'\"]').forEach(function(ab){ab.classList.add('menu-dang-chon');});}}});});"
+            if cl_soup.body: cl_soup.body.append(nav_js)
             
             with open(filepath, 'w', encoding='utf-8') as f: 
-                f.write(pretty_html)
+                f.write(cl_soup.prettify())
             
-            self.statusBar().showMessage(f"💾 Saved successfully: {os.path.basename(filepath)}", 5000)
-            QMessageBox.information(self, "Success", f"Saved and embedded standalone navigation script!\n\n📍 Actual path:\n{filepath}")
-            
+            self.is_dirty = False
+            self.statusBar().showMessage(f"💾 Saved and optimized for mobile responsive: {os.path.basename(filepath)}", 5000)
         except Exception as e:
-            QMessageBox.critical(self, "Error Saving File", f"The system refused write permission:\n{str(e)}")
+            QMessageBox.critical(self, "Save File Error", f"Error:\n{str(e)}")
 
     def execute_save_as(self):
         default_dir = os.path.dirname(self.current_file_path) if self.current_file_path else BASE_DIR
-        path, _ = QFileDialog.getSaveFileName(self, "Save as New File (Save As)", default_dir, "HTML (*.html *.htm)")
+        path, _ = QFileDialog.getSaveFileName(self, "Save As New File", default_dir, "HTML (*.html *.htm)")
         
         if path:
-            
             if not path.lower().endswith('.html') and not path.lower().endswith('.htm'):
                 path += '.html'
                 
             self.current_file_path = os.path.abspath(path)
             self.lbl_current_file.setText(f"Viewing: <b>{os.path.basename(self.current_file_path)}</b>")
             self.execute_save(self.current_file_path)
+            self.is_dirty = False
 
     def create_blank_page(self, theme="light"):
-        import datetime
+        if not self.check_and_save_if_dirty():
+            return
+
         self.save_state_for_undo()
-        
-        new_dir = os.path.join(BASE_DIR, "New_html")
-        os.makedirs(new_dir, exist_ok=True)
-        
-        existing_files = [f for f in os.listdir(new_dir) if f.lower().endswith('.html')]
-        idx = len(existing_files) + 1
-        
-        date_str = datetime.datetime.now().strftime("%d%m%Y")
-        filename = f"{idx:04d}_{date_str}_{theme}.html"
-        filepath = os.path.join(new_dir, filename)
 
         if theme == "dark":
             bg_body = "#121212"
@@ -1694,7 +1879,6 @@ class UniversalHTMLEditor(QMainWindow):
             bg_body = "#f5f5f5"
             text_color = "#333333"
 
-        
         blank_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -1707,36 +1891,47 @@ class UniversalHTMLEditor(QMainWindow):
 </html>"""
 
         try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(blank_html)
-                
-            self.current_file_path = filepath
-            self.lbl_current_file.setText(f"Viewing: <b>{filename}</b>")
+            self.current_file_path = None 
+            self.is_dirty = True
+            
+            self.lbl_current_file.setText(f"Viewing: <b>Unsaved (Blank {theme.upper()} Page)</b>")
             self.soup = self.parse_html(blank_html)
             self.refresh_tree()
             self.update_preview()
-            self.statusBar().showMessage(f"📄 Created a 100% blank {theme} page (No more placeholder containers): {filename}", 5000)
+            self.statusBar().showMessage(f"📄 Created a blank {theme.upper()} page in memory! (Press Ctrl+S to save to file)", 5000)
         except Exception as e:
-            QMessageBox.critical(self, "Error creating page", f"Could not create page:\n{str(e)}")
-
+            QMessageBox.critical(self, "Page Creation Error", f"Cannot create page:\n{str(e)}")
 
     def create_dashboard_page(self, theme="dark"):
-        import datetime
+        if not self.check_and_save_if_dirty():
+            return
+
         self.save_state_for_undo()
-        
+
         if theme == "dark":
             bg_body = "#0f111a"
             text_color = "#ffffff"
-            sidebar_html = '<div class="sidebar" style="width: 250px; background: #161925; border-right: 1px solid #232736; display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0;"><div class="logo" style="text-align: center; margin-bottom: 30px;"><img src="https://via.placeholder.com/80" style="border-radius: 10px; margin-bottom: 10px;"><h2 style="margin: 0; color: #00d2ff; font-size: 20px;">MyApp</h2></div><div class="menu-group" style="padding: 0 20px; margin-bottom: 15px;"><div style="font-size: 12px; color: #666; margin-bottom: 10px; text-transform: uppercase;">Main Menu</div><a href="#" style="display: block; padding: 12px 15px; background: rgba(0,210,255,0.1); color: #00d2ff; border-radius: 8px; text-decoration: none; margin-bottom: 5px; border-left: 3px solid #00d2ff;">🚀 Overview</a><a href="#" style="display: block; padding: 12px 15px; color: #aaa; text-decoration: none; margin-bottom: 5px; transition: 0.3s;">📁 Management</a><a href="#" style="display: block; padding: 12px 15px; color: #aaa; text-decoration: none; margin-bottom: 5px; transition: 0.3s;">⚙️ Settings</a></div></div>' 
+            sidebar_html = '<div class="sidebar" style="width: 250px; background: #161925; border-right: 1px solid #232736; display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0;"><div class="logo" style="text-align: center; margin-bottom: 30px;"><img src="https://via.placeholder.com/80" style="border-radius: 10px; margin-bottom: 10px;"><h2 style="margin: 0; color: #00d2ff; font-size: 20px;">MyApp</h2></div><div class="menu-group" style="padding: 0 20px; margin-bottom: 15px;"><div style="font-size: 12px; color: #666; margin-bottom: 10px; text-transform: uppercase;">Main Menu</div><a href="#" style="display: block; padding: 12px 15px; background: rgba(0,210,255,0.1); color: #00d2ff; border-radius: 8px; text-decoration: none; margin-bottom: 5px; border-left: 3px solid #00d2ff;">🚀 Overview</a><a href="#" style="display: block; padding: 12px 15px; color: #aaa; text-decoration: none; margin-bottom: 5px; transition: 0.3s;">📁 Management</a><a href="#" style="display: block; padding: 12px 15px; color: #aaa; text-decoration: none; margin-bottom: 5px; transition: 0.3s;">⚙️ Settings</a></div></div>'
             layout_style = "display: flex; min-height: 100vh; width: 100%; background: #0f111a; color: #fff; font-family: sans-serif;"
-            main_style = "flex: 1; padding: 30px; display: flex; flex-direction: column; background: #0f111a; overflow-y: auto;"
+            main_style = "flex: 1; padding: 30px; display: flex; flex-direction: column; background: #0f111a; overflow-y: auto; overflow-x: hidden; width: 100%; box-sizing: border-box;"
         else:
             bg_body = "#f4f6f8"
             text_color = "#333333"
-            sidebar_html = '<div class="sidebar" style="width: 250px; background: #ffffff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0;"><div class="logo" style="text-align: center; margin-bottom: 30px;"><img src="https://via.placeholder.com/80" style="border-radius: 10px; margin-bottom: 10px;"><h2 style="margin: 0; color: #007acc; font-size: 20px;">MyApp</h2></div><div class="menu-group" style="padding: 0 20px; margin-bottom: 15px;"><div style="font-size: 12px; color: #888; margin-bottom: 10px; text-transform: uppercase;">Main Menu</div><a href="#" style="display: block; padding: 12px 15px; background: rgba(0,122,204,0.1); color: #007acc; border-radius: 8px; text-decoration: none; margin-bottom: 5px; border-left: 3px solid #007acc;">🚀 Overview</a><a href="#" style="display: block; padding: 12px 15px; color: #555; text-decoration: none; margin-bottom: 5px; transition: 0.3s;">📁 Management</a><a href="#" style="display: block; padding: 12px 15px; color: #555; text-decoration: none; margin-bottom: 5px; transition: 0.3s;">⚙️ Settings</a></div></div>' 
+            sidebar_html = '<div class="sidebar" style="width: 250px; background: #ffffff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0;"><div class="logo" style="text-align: center; margin-bottom: 30px;"><img src="https://via.placeholder.com/80" style="border-radius: 10px; margin-bottom: 10px;"><h2 style="margin: 0; color: #007acc; font-size: 20px;">MyApp</h2></div><div class="menu-group" style="padding: 0 20px; margin-bottom: 15px;"><div style="font-size: 12px; color: #888; margin-bottom: 10px; text-transform: uppercase;">Main Menu</div><a href="#" style="display: block; padding: 12px 15px; background: rgba(0,122,204,0.1); color: #007acc; border-radius: 8px; text-decoration: none; margin-bottom: 5px; border-left: 3px solid #007acc;">🚀 Overview</a><a href="#" style="display: block; padding: 12px 15px; color: #555; text-decoration: none; margin-bottom: 5px; transition: 0.3s;">📁 Management</a><a href="#" style="display: block; padding: 12px 15px; color: #555; text-decoration: none; margin-bottom: 5px; transition: 0.3s;">⚙️ Settings</a></div></div>'
             layout_style = "display: flex; min-height: 100vh; width: 100%; background: #f4f6f8; color: #333; font-family: sans-serif;"
-            main_style = "flex: 1; padding: 30px; display: flex; flex-direction: column; background: #f4f6f8; overflow-y: auto;"
+            main_style = "flex: 1; padding: 30px; display: flex; flex-direction: column; background: #f4f6f8; overflow-y: auto; overflow-x: hidden; width: 100%; box-sizing: border-box;"
 
+        mobile_responsive_css = """
+        <style id="mobile-responsive-css">
+            @media (max-width: 768px) {
+                .dashboard-layout { flex-direction: column !important; }
+                .sidebar { width: 100% !important; border-right: none !important; border-bottom: 1px solid rgba(150,150,150,0.2) !important; padding-bottom: 10px !important; }
+                .main-content { padding: 15px !important; }
+                .row-wrap, .grid-wrap { flex-direction: column !important; display: flex !important; }
+                .col, .card { width: 100% !important; max-width: 100% !important; flex: none !important; }
+            }
+        </style>
+        """
         body = self.soup.find('body') if self.soup else None
         has_content = False
         if body:
@@ -1746,8 +1941,12 @@ class UniversalHTMLEditor(QMainWindow):
 
         if has_content:
             if self.soup.find(class_='dashboard-layout') or self.soup.find(class_='sidebar'):
-                QMessageBox.warning(self, "Notice", "The current page already has a Sidebar/Dashboard structure, cannot wrap again!")
+                QMessageBox.warning(self, "Notice", "The current page already contains a Sidebar/Dashboard structure!")
                 return
+                
+            head = self.soup.find('head')
+            if head and not self.soup.find(id='mobile-responsive-css'):
+                head.append(self.parse_html(mobile_responsive_css).style)
 
             dashboard_node = self.soup.new_tag('div')
             dashboard_node['class'] = "dashboard-layout"
@@ -1762,37 +1961,28 @@ class UniversalHTMLEditor(QMainWindow):
 
             for child in list(body.contents):
                 if isinstance(child, Tag) and child.name in ['script', 'style'] and 'mini-app' in str(child.get('id', '')):
-                    continue # Skip past the Editor script
+                    continue
                 main_node.append(child.extract())
 
             dashboard_node.append(sidebar_node)
             dashboard_node.append(main_node)
             body.append(dashboard_node)
-
             body['style'] = f"min-height: 100vh; margin: 0; padding: 0; font-family: sans-serif; background-color: {bg_body}; color: {text_color}; overflow-x: hidden;"
 
+            self.is_dirty = True
             self.refresh_tree()
             self.update_preview()
-            self.statusBar().showMessage("🎛️ Current content successfully wrapped with a Dashboard structure!", 5000)
+            self.statusBar().showMessage("🎛️ Wrapped content inside a Dashboard structure!", 5000)
 
         else:
-            new_dir = os.path.join(BASE_DIR, "New_html")
-            os.makedirs(new_dir, exist_ok=True)
-            
-            existing_files = [f for f in os.listdir(new_dir) if f.lower().endswith('.html')]
-            idx = len(existing_files) + 1
-            
-            date_str = datetime.datetime.now().strftime("%d%m%Y")
-            filename = f"{idx:04d}_{date_str}_Dashboard_{theme.capitalize()}.html"
-            filepath = os.path.join(new_dir, filename)
-
             dashboard_html_full = f'<div class="dashboard-layout" style="{layout_style}">{sidebar_html}<div class="main-content" style="{main_style}"></div></div>'
             full_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard {theme.capitalize()}</title>
+    {mobile_responsive_css.strip()}
 </head>
 <body style="min-height: 100vh; margin: 0; padding: 0; font-family: sans-serif; background-color: {bg_body}; color: {text_color}; overflow-x: hidden;">
 {dashboard_html_full}
@@ -1800,36 +1990,34 @@ class UniversalHTMLEditor(QMainWindow):
 </html>"""
 
             try:
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    f.write(full_html)
-                    
-                self.current_file_path = filepath
-                self.lbl_current_file.setText(f"Viewing: <b>{filename}</b>")
+                self.current_file_path = None
+                self.is_dirty = True
+                
+                self.lbl_current_file.setText(f"Viewing: <b>Unsaved ({theme.capitalize()} Dashboard)</b>")
                 self.soup = self.parse_html(full_html)
                 self.refresh_tree()
                 self.update_preview()
-                self.statusBar().showMessage(f"🎛️ Auto-generated Dashboard: {filename}", 5000)
+                self.statusBar().showMessage(f"🎛️ Created a Dashboard in memory! (Press Ctrl+S to save to file)", 5000)
             except Exception as e:
-                QMessageBox.critical(self, "Error creating page", f"Could not create page:\n{str(e)}")
+                QMessageBox.critical(self, "Page Creation Error", f"Cannot create page:\n{str(e)}")
 
     def export_project_to_zip(self):
         if not self.current_file_path:
-            QMessageBox.warning(self, "Warning", "Please open or save the project as an HTML file before exporting a ZIP.")
+            QMessageBox.warning(self, "Warning", "Please open or save the project as an HTML file before exporting to ZIP.")
             return
 
-        zip_path, _ = QFileDialog.getSaveFileName(self, "Export Project to ZIP file", os.path.dirname(self.current_file_path), "ZIP Archive (*.zip)")
+        zip_path, _ = QFileDialog.getSaveFileName(self, "Export Project to ZIP", os.path.dirname(self.current_file_path), "ZIP Archive (*.zip)")
         if not zip_path: return
 
-        self.statusBar().showMessage("📦 Collecting assets and packaging ZIP...", 2000)
-        
+        self.statusBar().showMessage("📦 Gathering resources and creating ZIP...", 2000)
         try:
             base_dir = os.path.dirname(os.path.abspath(self.current_file_path))
-            
             with tempfile.TemporaryDirectory() as temp_dir:
                 assets_dir = os.path.join(temp_dir, "assets")
                 os.makedirs(assets_dir, exist_ok=True)
                 
                 export_soup = self.parse_html(str(self.soup))
+                self.make_html_mobile_responsive(export_soup)
                 
                 for t in export_soup.find_all(True):
                     if 'data-editor-id' in t.attrs: del t['data-editor-id']
@@ -1838,77 +2026,29 @@ class UniversalHTMLEditor(QMainWindow):
                         t['class'].remove('editor-highlight')
                         if not t['class']: del t['class']
                 
-                for s_id in ["mini-app-editor-script", "mini-app-editor-style"]:
+                for s_id in ["mini-app-editor-script", "mini-app-editor-style", "miniapp-nav-script"]:
                     s = export_soup.find(id=s_id)
                     if s: s.decompose()
                     
-                head = export_soup.find('head')
-                if not head:
-                    head = export_soup.new_tag('head')
-                    if export_soup.html: export_soup.html.insert(0, head)
-                if not export_soup.find(id='miniapp-base-css'):
-                    base_css = export_soup.new_tag('style', id='miniapp-base-css')
-                    base_css.string = "\n        * { box-sizing: border-box; }\n        img, video, iframe { max-width: 100%; height: auto; object-fit: contain; }\n        p, h1, h2, h3, h4, h5, h6, span, div, a { max-width: 100%; overflow-wrap: break-word; }\n        html, body { overflow-x: hidden; }\n    "
-                    head.append(base_css)
-
-                if not export_soup.find(id='miniapp-nav-script'):
-                    nav_js = export_soup.new_tag('script', id='miniapp-nav-script')
-                    nav_js.string = """
-        document.addEventListener('DOMContentLoaded', function() {
-            var pageIds = [];
-            document.querySelectorAll('[data-trang]').forEach(function(btn) {
-                var tId = btn.getAttribute('data-trang');
-                if (tId && pageIds.indexOf(tId) === -1) pageIds.push(tId);
-            });
-            document.body.addEventListener('click', function(e) {
-                var btn = e.target.closest('[data-trang]');
-                if (btn) {
-                    var targetId = btn.getAttribute('data-trang');
-                    var targetPage = document.getElementById(targetId);
-                    if (targetPage) {
-                        e.preventDefault();
-                        pageIds.forEach(function(id) {
-                            var p = document.getElementById(id);
-                            if (p) {
-                                p.classList.remove('trang-dang-hien-thi');
-                                p.style.setProperty('display', 'none', 'important');
-                            }
-                        });
-                        targetPage.classList.add('trang-dang-hien-thi');
-                        targetPage.style.setProperty('display', 'block', 'important');
-                        
-                        document.querySelectorAll('[data-trang]').forEach(function(b) {
-                            b.classList.remove('menu-dang-chon');
-                        });
-                        document.querySelectorAll('[data-trang="' + targetId + '"]').forEach(function(ab){ 
-                            ab.classList.add('menu-dang-chon'); 
-                        });
-                    }
-                }
-            });
-        });
-    """
-                    if export_soup.body: export_soup.body.append(nav_js)
+                nav_js = export_soup.new_tag('script', id='miniapp-nav-script')
+                nav_js.string = "document.addEventListener('DOMContentLoaded',function(){var pageIds=[];document.querySelectorAll('[data-trang]').forEach(function(btn){var tId=btn.getAttribute('data-trang');if(tId&&pageIds.indexOf(tId)===-1)pageIds.push(tId);});document.body.addEventListener('click',function(e){var btn=e.target.closest('[data-trang]');if(btn){var targetId=btn.getAttribute('data-trang');var targetPage=document.getElementById(targetId);if(targetPage){e.preventDefault();pageIds.forEach(function(id){var p=document.getElementById(id);if(p){p.classList.remove('trang-dang-hien-thi');p.style.setProperty('display','none','important');}});targetPage.classList.add('trang-dang-hien-thi');targetPage.style.setProperty('display','block','important');document.querySelectorAll('[data-trang]').forEach(function(b){b.classList.remove('menu-dang-chon');});document.querySelectorAll('[data-trang=\"'+targetId+'\"]').forEach(function(ab){ab.classList.add('menu-dang-chon');});}}});});"
+                if export_soup.body: export_soup.body.append(nav_js)
 
                 for tag in export_soup.find_all(['img', 'video', 'audio', 'source', 'link', 'script', 'a']):
                     attr = 'src' if tag.has_attr('src') else 'href' if tag.has_attr('href') else None
                     if attr and tag[attr]:
                         src_val = str(tag[attr])
-                        # Skip web links or base64
                         if not src_val.startswith(('http://', 'https://', 'data:', '//', '#')):
                             clean_src = urllib.parse.unquote(src_val)
                             local_filepath = os.path.normpath(os.path.join(base_dir, clean_src))
-                            
                             if os.path.exists(local_filepath) and os.path.isfile(local_filepath):
                                 filename = os.path.basename(local_filepath)
-
                                 new_filename = filename
                                 counter = 1
                                 while os.path.exists(os.path.join(assets_dir, new_filename)):
                                     name, ext = os.path.splitext(filename)
                                     new_filename = f"{name}_{counter}{ext}"
                                     counter += 1
-                                    
                                 shutil.copy2(local_filepath, os.path.join(assets_dir, new_filename))
                                 tag[attr] = f"assets/{new_filename}"
 
@@ -1924,25 +2064,22 @@ class UniversalHTMLEditor(QMainWindow):
                             arc_name = os.path.join("assets", os.path.relpath(file_path, assets_dir)).replace('\\', '/')
                             zipf.write(file_path, arcname=arc_name)
 
-            self.statusBar().showMessage(f"✅ Packaging complete: {os.path.basename(zip_path)}", 5000)
-            QMessageBox.information(self, "ZIP Export Successful", f"The entire project has been packaged at:\n{zip_path}\n\nAll local images and libraries have been neatly gathered into the 'assets/' folder.")
-
+            self.statusBar().showMessage(f"✅ ZIP export complete: {os.path.basename(zip_path)}", 5000)
+            QMessageBox.information(self, "Export Successful", f"Project successfully exported and optimized for Mobile Responsive 100%!\n\nSaved at: {zip_path}")
         except Exception as e:
-            QMessageBox.critical(self, "Packaging Error", f"The ZIP export process was interrupted:\n{str(e)}")
+            QMessageBox.critical(self, "Export Error", f"Error:\n{str(e)}")
 
     def export_production_zip(self):
         if not self.current_file_path:
-            QMessageBox.warning(self, "Warning", "Please open or save the project as an HTML file before exporting Production.")
+            QMessageBox.warning(self, "Warning", "Please open or save the project as an HTML file before exporting to Production.")
             return
 
-        zip_path, _ = QFileDialog.getSaveFileName(self, "Export Production (Cleanly split Inline CSS & Optimize)", os.path.dirname(self.current_file_path), "ZIP Archive (*.zip)")
+        zip_path, _ = QFileDialog.getSaveFileName(self, "Export Production (Extract Inline CSS & Optimize)", os.path.dirname(self.current_file_path), "ZIP Archive (*.zip)")
         if not zip_path: return
 
-        self.statusBar().showMessage("🚀 Running the CSS-extraction and source optimization Engine...", 2000)
-        
+        self.statusBar().showMessage("🚀 Running Code Cleanup & Optimization Engine v11.0...", 2000)
         try:
             base_dir = os.path.dirname(os.path.abspath(self.current_file_path))
-            
             with tempfile.TemporaryDirectory() as temp_dir:
                 assets_dir = os.path.join(temp_dir, "assets")
                 css_dir = os.path.join(temp_dir, "css")
@@ -1950,64 +2087,25 @@ class UniversalHTMLEditor(QMainWindow):
                 os.makedirs(css_dir, exist_ok=True)
                 
                 export_soup = self.parse_html(str(self.soup))
-                
+                self.make_html_mobile_responsive(export_soup)
+
                 for t in export_soup.find_all(True):
                     if 'data-editor-id' in t.attrs: del t['data-editor-id']
                     if 'data-locked' in t.attrs: del t['data-locked']
                     if 'class' in t.attrs and 'editor-highlight' in t['class']:
                         t['class'].remove('editor-highlight')
                         if not t['class']: del t['class']
-                
+
                 for s_id in ["mini-app-editor-script", "mini-app-editor-style"]:
                     s = export_soup.find(id=s_id)
                     if s: s.decompose()
                     
-                if not export_soup.find(id='miniapp-nav-script'):
-                    nav_js = export_soup.new_tag('script', id='miniapp-nav-script')
-                    nav_js.string = """
-        document.addEventListener('DOMContentLoaded', function() {
-            var pageIds = [];
-            document.querySelectorAll('[data-trang]').forEach(function(btn) {
-                var tId = btn.getAttribute('data-trang');
-                if (tId && pageIds.indexOf(tId) === -1) pageIds.push(tId);
-            });
-            document.body.addEventListener('click', function(e) {
-                var btn = e.target.closest('[data-trang]');
-                if (btn) {
-                    var targetId = btn.getAttribute('data-trang');
-                    var targetPage = document.getElementById(targetId);
-                    if (targetPage) {
-                        e.preventDefault();
-                        pageIds.forEach(function(id) {
-                            var p = document.getElementById(id);
-                            if (p) {
-                                p.classList.remove('trang-dang-hien-thi');
-                                p.style.setProperty('display', 'none', 'important');
-                            }
-                        });
-                        targetPage.classList.add('trang-dang-hien-thi');
-                        targetPage.style.setProperty('display', 'block', 'important');
-                        
-                        document.querySelectorAll('[data-trang]').forEach(function(b) {
-                            b.classList.remove('menu-dang-chon');
-                        });
-                        document.querySelectorAll('[data-trang="' + targetId + '"]').forEach(function(ab){ 
-                            ab.classList.add('menu-dang-chon'); 
-                        });
-                    }
-                }
-            });
-        });
-    """
-                    if export_soup.body: export_soup.body.append(nav_js)
-                    
                 style_map = {}
                 css_rules = [
-                    "/* Optimized by Universal No-Code Designer */",
-                    "* { box-sizing: border-box; }",
-                    "img, video, iframe { max-width: 100%; height: auto; object-fit: contain; }",
-                    "p, h1, h2, h3, h4, h5, h6, span, div, a { max-width: 100%; overflow-wrap: break-word; }",
-                    "html, body { overflow-x: hidden; }\n"
+                    "/* Optimized by Universal No-Code Designer v11.0 (Clean-Sweep) */",
+                    "* { box-sizing: border-box !important; }",
+                    "img, video, iframe, embed, object, svg { max-width: 100% !important; height: auto !important; object-fit: contain; }",
+                    "html, body { overflow-x: hidden !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }\n"
                 ]
                 class_counter = 1
                 
@@ -2017,38 +2115,76 @@ class UniversalHTMLEditor(QMainWindow):
                         st = st.replace('\n', ' ').strip()
                         if st.endswith(';'): st = st[:-1]
                         st = st.strip()
-                        
                         if st:
-
                             if st not in style_map:
                                 cls_name = f"opt-ui-{class_counter:04d}"
                                 style_map[st] = cls_name
                                 css_rules.append(f".{cls_name} {{ {st} !important; }}")
                                 class_counter += 1
-                            
-
                             target_cls = style_map[st]
                             current_classes = tag.get('class', [])
                             if isinstance(current_classes, str): current_classes = [current_classes]
                             current_classes.append(target_cls)
                             tag['class'] = current_classes
                             del tag['style']
-                
+
+                css_rules.append("""
+@media screen and (max-width: 768px) {
+    body { display: flex !important; flex-direction: column !important; min-height: auto !important; overflow-y: auto !important; }
+    aside, .thanh-dieu-huong, [class*="dieu-huong"], [class*="sidebar"] {
+        position: relative !important; left: auto !important; top: auto !important; right: auto !important; bottom: auto !important;
+        width: 100% !important; max-width: 100% !important; height: auto !important; max-height: none !important;
+        margin: 0 !important; padding: 20px 15px !important; z-index: 10 !important; border-right: none !important;
+        border-bottom: 2px solid #2a3441 !important; box-shadow: none !important; overflow: visible !important;
+    }
+    main, .vung-noi-dung-chinh, [class*="noi-dung-chinh"], [class*="main-content"] {
+        position: relative !important; left: auto !important; top: auto !important; right: auto !important; bottom: auto !important;
+        width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 25px 15px !important;
+        z-index: 1 !important; display: block !important; overflow: visible !important;
+    }
+    .trang-noi-dung { display: none !important; }
+    .trang-noi-dung.hien-thi, .trang-noi-dung.trang-dang-hien-thi, .trang-noi-dung[style*="display: block"], .trang-noi-dung[style*="display:block"] {
+        display: block !important; width: 100% !important;
+    }
+    .dashboard-layout, .row-wrap, .grid-wrap, .card-wrap, .luoi-noi-dung,
+    [class*="header-box"], [class*="content-box"], [class*="app-content"],
+    [class*="khung-app"], [class*="goi-giong"], [class*="chia-"],
+    [style*="display: flex"], [style*="display:flex"], [style*="display: grid"], [style*="display:grid"] {
+        display: flex !important; flex-direction: column !important; flex-wrap: wrap !important;
+        width: 100% !important; max-width: 100% !important; height: auto !important; min-height: 0 !important; gap: 15px !important;
+    }
+    .app-media, .app-article, .app-header-text, .app-header-logo,
+    .the-ung-dung, .card, .col, [class*="grid-item"],
+    [class*="header-box"] > *, [class*="content-box"] > *, .luoi-noi-dung > *, .card-wrap > * {
+        width: 100% !important; max-width: 100% !important; min-width: 0 !important; flex: none !important; margin-left: 0 !important; margin-right: 0 !important;
+    }
+    .app-header-logo, .vung-logo { margin: 10px auto !important; align-self: center !important; }
+    a:not(.card *), button, li, span, label, input, select, textarea, .menu-con, .mui-ten,
+    .pagination, .pagination *, .nut-phan-trang, .nav-phan-trang, .nut-bam, .nut-menu {
+        min-width: 0 !important; max-width: 100% !important;
+    }
+    a.nut-chuyen-trang, a[class*="nut-menu"], .nut-mo-menu-con, .tieu-de-muc-lon {
+        display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; width: 100% !important;
+    }
+    table { display: block !important; width: 100% !important; overflow-x: auto !important; white-space: nowrap !important; -webkit-overflow-scrolling: touch; }
+    p, h1, h2, h3, h4, h5, h6, span, a, li, td, th { word-break: normal !important; overflow-wrap: break-word !important; white-space: normal !important; }
+}""")
 
                 prod_css_path = os.path.join(css_dir, "style.min.css")
                 with open(prod_css_path, 'w', encoding='utf-8') as f:
                     f.write("\n".join(css_rules))
                 
-
                 head = export_soup.find('head')
                 if not head:
                     head = export_soup.new_tag('head')
                     if export_soup.html: export_soup.html.insert(0, head)
+
+                inline_mobile_css = export_soup.find(id='clean-mobile-engine-css')
+                if inline_mobile_css: inline_mobile_css.decompose()
                 
                 link_css = export_soup.new_tag('link', rel='stylesheet', href='css/style.min.css')
                 head.append(link_css)
                         
-
                 for tag in export_soup.find_all(['img', 'video', 'audio', 'source', 'link', 'script', 'a']):
                     attr = 'src' if tag.has_attr('src') else 'href' if tag.has_attr('href') else None
                     if attr and tag[attr]:
@@ -2056,7 +2192,6 @@ class UniversalHTMLEditor(QMainWindow):
                         if not src_val.startswith(('http://', 'https://', 'data:', '//', '#')):
                             clean_src = urllib.parse.unquote(src_val)
                             local_filepath = os.path.normpath(os.path.join(base_dir, clean_src))
-                            
                             if os.path.exists(local_filepath) and os.path.isfile(local_filepath):
                                 filename = os.path.basename(local_filepath)
                                 new_filename = filename
@@ -2065,17 +2200,13 @@ class UniversalHTMLEditor(QMainWindow):
                                     name, ext = os.path.splitext(filename)
                                     new_filename = f"{name}_{counter}{ext}"
                                     counter += 1
-                                    
                                 shutil.copy2(local_filepath, os.path.join(assets_dir, new_filename))
                                 tag[attr] = f"assets/{new_filename}"
 
-
                 html_path = os.path.join(temp_dir, "index.html")
-                raw_minified_html = str(export_soup)
                 with open(html_path, 'w', encoding='utf-8') as f:
-                    f.write(raw_minified_html)
+                    f.write(str(export_soup))
                     
-
                 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                     zipf.write(html_path, arcname="index.html")
                     zipf.write(prod_css_path, arcname="css/style.min.css")
@@ -2086,15 +2217,13 @@ class UniversalHTMLEditor(QMainWindow):
                             zipf.write(file_path, arcname=arc_name)
 
             self.statusBar().showMessage(f"🚀 Production export complete: {os.path.basename(zip_path)}", 5000)
-            QMessageBox.information(self, "Optimization Successful", f"An ultra-lightweight Website structure has been exported!\n\nAll Inline-CSS has been extracted and neatly grouped into the 'css/style.min.css' folder.\nYou can confidently drop this file onto your Host.")
-
+            QMessageBox.information(self, "Optimization Complete", f"Successfully cleaned up & optimized for Mobile Responsive v11.0 100%!\n\nSaved at: {zip_path}")
         except Exception as e:
-            QMessageBox.critical(self, "Packaging Error", f"The Production export process was interrupted:\n{str(e)}")
-
+            QMessageBox.critical(self, "Export Error", f"Production export was interrupted:\n{str(e)}")
     def setup_quick_components_ui(self, layout):
         row1 = QHBoxLayout(); row1.setContentsMargins(0,0,0,0)
         row2 = QHBoxLayout(); row2.setContentsMargins(0,0,0,5)
-        row3 = QHBoxLayout(); row3.setContentsMargins(0,5,0,10) 
+        row3 = QHBoxLayout(); row3.setContentsMargins(0,5,0,10)
         
         def load_templates(file_name, fallback_dict):
             try:
@@ -2131,13 +2260,13 @@ class UniversalHTMLEditor(QMainWindow):
         fb_layout = {
             "🔲 2 Equal Columns (1/2 - 1/2)": f'<div class="row-wrap" style="display:flex;flex-wrap:wrap;gap:15px;width:100%;"><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Left Column (1/2)</div><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Right Column (1/2)</div></div>',
             "🔲 3 Equal Columns (1/3 - 1/3 - 1/3)": f'<div class="row-wrap" style="display:flex;flex-wrap:wrap;gap:15px;width:100%;"><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Column 1 (1/3)</div><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Column 2 (1/3)</div><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Column 3 (1/3)</div></div>',
-            "🔲 Left Weighted (1/3 - 2/3)": f'<div class="row-wrap" style="display:flex;flex-wrap:wrap;gap:15px;width:100%;"><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Left (1/3)</div><div class="col" style="flex:2 1 0%;min-width:250px;max-width:100%;{bz}">Right (2/3)</div></div>',
-            "🔲 Right Weighted (2/3 - 1/3)": f'<div class="row-wrap" style="display:flex;flex-wrap:wrap;gap:15px;width:100%;"><div class="col" style="flex:2 1 0%;min-width:250px;max-width:100%;{bz}">Left (2/3)</div><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Right (1/3)</div></div>' 
+            "🔲 Left Heavy (1/3 - 2/3)": f'<div class="row-wrap" style="display:flex;flex-wrap:wrap;gap:15px;width:100%;"><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Left (1/3)</div><div class="col" style="flex:2 1 0%;min-width:250px;max-width:100%;{bz}">Right (2/3)</div></div>',
+            "🔲 Right Heavy (2/3 - 1/3)": f'<div class="row-wrap" style="display:flex;flex-wrap:wrap;gap:15px;width:100%;"><div class="col" style="flex:2 1 0%;min-width:250px;max-width:100%;{bz}">Left (2/3)</div><div class="col" style="flex:1 1 0%;min-width:150px;max-width:100%;{bz}">Right (1/3)</div></div>'
         }
-        fb_table = { "📊 Basic Data Table": '<div style="overflow-x:auto;padding:10px;width:100%;"><table style="width:100%;border-collapse:collapse;margin:15px 0;font-family:sans-serif;color:inherit;"><tr style="background:#007acc;color:white;text-align:left;"><th style="padding:12px 15px;">ID</th><th style="padding:12px 15px;">Full Name</th><th style="padding:12px 15px;">Status</th></tr><tr style="border-bottom: 1px solid rgba(150,150,150,0.3);"><td style="padding:12px 15px;">#01</td><td style="padding:12px 15px;">John Smith</td><td style="padding:12px 15px;"><span style="background:#28a745;color:white;padding:4px 8px;border-radius:12px;font-size:12px;">Active</span></td></tr></table></div>' }
-        fb_button = { "🔘 Button (Basic Btn)": '<a href="#" style="display:inline-block;background:#007acc;color:#fff;padding:10px 25px;border-radius:25px;text-decoration:none;font-weight:bold;box-shadow:0 4px 6px rgba(0,122,204,0.3); transition: 0.3s;margin:5px;">Click Here</a>' }
+        fb_table = { "📊 Base Data Table": '<div style="overflow-x:auto;padding:10px;width:100%;"><table style="width:100%;border-collapse:collapse;margin:15px 0;font-family:sans-serif;color:inherit;"><tr style="background:#007acc;color:white;text-align:left;"><th style="padding:12px 15px;">ID</th><th style="padding:12px 15px;">Full Name</th><th style="padding:12px 15px;">Status</th></tr><tr style="border-bottom: 1px solid rgba(150,150,150,0.3);"><td style="padding:12px 15px;">#01</td><td style="padding:12px 15px;">John Doe</td><td style="padding:12px 15px;"><span style="background:#28a745;color:white;padding:4px 8px;border-radius:12px;font-size:12px;">Active</span></td></tr></table></div>' }
+        fb_button = { "🔘 Button (Base Btn)": '<a href="#" style="display:inline-block;background:#007acc;color:#fff;padding:10px 25px;border-radius:25px;text-decoration:none;font-weight:bold;box-shadow:0 4px 6px rgba(0,122,204,0.3); transition: 0.3s;margin:5px;">Click Here</a>' }
         
-        card_html = '<div class="card" style="flex:1 1 0%;min-width:200px;max-width:100%;display:flex;flex-direction:column;border:1px solid rgba(150,150,150,0.3);background:rgba(150,150,150,0.02);color:inherit;border-radius:10px;overflow:hidden;box-shadow: 0 4px 8px rgba(0,0,0,0.1);"><div style="height:150px;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;padding:10px;border-bottom:1px solid rgba(150,150,150,0.2);"><img src="https://via.placeholder.com/150" style="max-height:100%;max-width:100%;object-fit:contain;"></div><div style="padding:15px;display:flex;flex-direction:column;flex:1;"><h3 style="margin:0 0 10px 0;font-size:18px;">Card Title</h3><p style="font-size:14px;line-height:1.5;opacity:0.8;margin:0 0 15px 0;">Card content description.</p><a href="#" style="display:block;padding:10px;background:#007bff;color:white;text-decoration:none;border-radius:5px;text-align:center;margin-top:auto;font-weight:bold;">Details</a></div></div>' 
+        card_html = '<div class="card" style="flex:1 1 0%;min-width:200px;max-width:100%;display:flex;flex-direction:column;border:1px solid rgba(150,150,150,0.3);background:rgba(150,150,150,0.02);color:inherit;border-radius:10px;overflow:hidden;box-shadow: 0 4px 8px rgba(0,0,0,0.1);"><div style="height:150px;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;padding:10px;border-bottom:1px solid rgba(150,150,150,0.2);"><img src="https://via.placeholder.com/150" style="max-height:100%;max-width:100%;object-fit:contain;"></div><div style="padding:15px;display:flex;flex-direction:column;flex:1;"><h3 style="margin:0 0 10px 0;font-size:18px;">Card Title</h3><p style="font-size:14px;line-height:1.5;opacity:0.8;margin:0 0 15px 0;">Card description content.</p><a href="#" style="display:block;padding:10px;background:#007bff;color:white;text-decoration:none;border-radius:5px;text-align:center;margin-top:auto;font-weight:bold;">Details</a></div></div>'
         card_large = card_html.replace('flex:1 1 0%;', 'flex:2 1 0%;').replace('min-width:200px;', 'min-width:300px;')
         card_1_large_2_small = (
             '<div style="display:flex;flex-wrap:wrap;gap:20px;width:100%;margin:15px 0;">'
@@ -2152,15 +2281,15 @@ class UniversalHTMLEditor(QMainWindow):
                 '<div style="flex:1 1 300px;display:flex;flex-direction:column;gap:15px;justify-content:center;">'
                     '<div style="display:flex;align-items:center;justify-content:space-between;background:#1a1c23;'
                     'border:1px solid rgba(255,255,255,0.1);padding:15px 20px;border-radius:8px;">'
-                        '<div style="font-weight:bold;color:#00d2ff;font-family:sans-serif;">👩 Female Voice</div>' 
+                        '<div style="font-weight:bold;color:#00d2ff;font-family:sans-serif;">👩 Female Voice</div>'
                         '<a href="#" style="padding:8px 20px;background:transparent;color:#00d2ff;text-decoration:none;'
-                        'border:1px solid #00d2ff;border-radius:5px;font-size:13px;font-weight:bold;">Download</a>' 
+                        'border:1px solid #00d2ff;border-radius:5px;font-size:13px;font-weight:bold;">Download</a>'
                     '</div>'
                     '<div style="display:flex;align-items:center;justify-content:space-between;background:#1a1c23;'
                     'border:1px solid rgba(255,255,255,0.1);padding:15px 20px;border-radius:8px;">'
-                        '<div style="font-weight:bold;color:#00d2ff;font-family:sans-serif;">👨 Male Voice</div>' 
+                        '<div style="font-weight:bold;color:#00d2ff;font-family:sans-serif;">👨 Male Voice</div>'
                         '<a href="#" style="padding:8px 20px;background:transparent;color:#00d2ff;text-decoration:none;'
-                        'border:1px solid #00d2ff;border-radius:5px;font-size:13px;font-weight:bold;">Download</a>' 
+                        'border:1px solid #00d2ff;border-radius:5px;font-size:13px;font-weight:bold;">Download</a>'
                     '</div>'
                 '</div>'
             '</div>'
@@ -2172,14 +2301,14 @@ class UniversalHTMLEditor(QMainWindow):
             'box-shadow:0 4px 10px rgba(0,0,0,0.1);">'
                 '<img src="https://via.placeholder.com/100" style="width:80px;height:80px;border-radius:50%;'
                 'object-fit:cover;border:3px solid #00d2ff;margin-bottom:15px;">'
-                '<h3 style="margin:0 0 5px 0;font-size:18px;color:#fff;">John Doe</h3>' 
-                '<p style="margin:0 0 15px 0;font-size:13px;color:#888;">UI/UX Specialist</p>' 
+                '<h3 style="margin:0 0 5px 0;font-size:18px;color:#fff;">John Smith</h3>'
+                '<p style="margin:0 0 15px 0;font-size:13px;color:#888;">UI/UX Specialist</p>'
                 '<div style="display:flex;gap:10px;justify-content:center;">'
                     '<a href="#" style="padding:6px 12px;background:#00d2ff;color:#000;text-decoration:none;'
-                    'border-radius:20px;font-size:12px;font-weight:bold;">Follow</a>' 
+                    'border-radius:20px;font-size:12px;font-weight:bold;">Follow</a>'
                     '<a href="#" style="padding:6px 12px;background:transparent;color:#00d2ff;'
                     'border:1px solid #00d2ff;text-decoration:none;border-radius:20px;font-size:12px;'
-                    'font-weight:bold;">Message</a>' 
+                    'font-weight:bold;">Message</a>'
                 '</div>'
             '</div>'
         )
@@ -2188,11 +2317,11 @@ class UniversalHTMLEditor(QMainWindow):
             '<div style="flex:1 1 250px;background:#1a1c23;border-top:4px solid #ff007f;border-radius:8px;'
             'padding:25px;margin:15px;box-shadow:0 5px 15px rgba(0,0,0,0.2);transition:0.3s;">'
                 '<div style="font-size:30px;margin-bottom:15px;">⚡</div>'
-                '<h3 style="margin:0 0 10px 0;color:#fff;font-size:18px;">Speed Optimization</h3>' 
-                '<p style="color:#aaa;font-size:14px;line-height:1.6;margin:0 0 20px 0;">The system is designed ' 
-                'to render extremely fast, giving end users a smooth experience.</p>'
+                '<h3 style="margin:0 0 10px 0;color:#fff;font-size:18px;">Speed Optimized</h3>'
+                '<p style="color:#aaa;font-size:14px;line-height:1.6;margin:0 0 20px 0;">The system is designed '
+                'for ultrafast rendering, delivering a smooth experience for end users.</p>'
                 '<a href="#" style="color:#ff007f;text-decoration:none;font-weight:bold;font-size:13px;">'
-                'Explore now ➔</a>'
+                'Explore Now ➔</a>'
             '</div>'
         )
 
@@ -2201,86 +2330,86 @@ class UniversalHTMLEditor(QMainWindow):
             'border-left:4px solid #ffc107;padding:15px 20px;border-radius:0 8px 8px 0;margin:15px 0;width:100%;">'
                 '<div style="font-size:24px;">🔔</div>'
                 '<div>'
-                    '<h4 style="margin:0 0 5px 0;color:#ffc107;font-size:16px;">Important Note</h4>' 
-                    '<p style="margin:0;color:#ddd;font-size:14px;line-height:1.5;">Please back up your data ' 
-                    'before updating to the new version to avoid data loss.</p>'
+                    '<h4 style="margin:0 0 5px 0;color:#ffc107;font-size:16px;">Important Note</h4>'
+                    '<p style="margin:0;color:#ddd;font-size:14px;line-height:1.5;">Please back up your data '
+                    'before updating to avoid data loss.</p>'
                 '</div>'
             '</div>'
         )
 
         fb_card = {
-            "1 Standalone Card": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_html}</div>',
-            "2 Cards side by side (1/2 - 1/2)": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_html}{card_html}</div>',
-            "3 Cards side by side (1/3 - 1/3 - 1/3)": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_html}{card_html}{card_html}</div>',
-            "2 Weighted Cards (Small 1/3 - Large 2/3)": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_html}{card_large}</div>',
-            "2 Weighted Cards (Large 2/3 - Small 1/3)": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_large}{card_html}</div>',
-            "🌟 Horizontal Card (Image Left - Text Right)": '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:20px;border:1px solid #333;background:rgba(255,255,255,0.03);padding:20px;border-radius:12px;width:100%;margin:15px 0;"><div style="flex:0 0 140px;height:120px;display:flex;align-items:center;justify-content:center;"><img src="https://via.placeholder.com/150" style="max-height:100%;max-width:100%;object-fit:contain;border-radius:10px;"></div><div style="flex:1 1 0%;min-width:200px;display:flex;flex-direction:column;"><h3 style="margin:0 0 10px 0;font-size:20px;color:#00d2ff;">App Tool Name</h3><p style="font-size:14px;line-height:1.6;color:#bbb;margin:0 0 15px 0;">Standard Media Object Card.</p><a href="#" style="align-self:flex-start;padding:10px 24px;background:#00bcd4;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:13px;">Download</a></div></div>',
+            "1 Single Card": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_html}</div>',
+            "2 Horizontal Cards (1/2 - 1/2)": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_html}{card_html}</div>',
+            "3 Horizontal Cards (1/3 - 1/3 - 1/3)": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_html}{card_html}{card_html}</div>',
+            "2 Cards Asymmetric (Small 1/3 - Large 2/3)": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_html}{card_large}</div>',
+            "2 Cards Asymmetric (Large 2/3 - Small 1/3)": f'<div class="card-wrap" style="display:flex;gap:20px;flex-wrap:wrap;margin:15px 0;width:100%;">{card_large}{card_html}</div>',
+            "🌟 Horizontal Media Card (Image Left - Text Right)": '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:20px;border:1px solid #333;background:rgba(255,255,255,0.03);padding:20px;border-radius:12px;width:100%;margin:15px 0;"><div style="flex:0 0 140px;height:120px;display:flex;align-items:center;justify-content:center;"><img src="https://via.placeholder.com/150" style="max-height:100%;max-width:100%;object-fit:contain;border-radius:10px;"></div><div style="flex:1 1 0%;min-width:200px;display:flex;flex-direction:column;"><h3 style="margin:0 0 10px 0;font-size:20px;color:#00d2ff;">App Tool Name</h3><p style="font-size:14px;line-height:1.6;color:#bbb;margin:0 0 15px 0;">Standard Media Object Card.</p><a href="#" style="align-self:flex-start;padding:10px 24px;background:#00bcd4;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:13px;">Download</a></div></div>',
             "📦 1 Large (Left) - 2 Small (Right)": card_1_large_2_small,
-            "👤 Profile Card (User Profile)": card_profile,
+            "👤 User Profile Card": card_profile,
             "🚀 Feature Card": card_feature,
-            "⚠️ Alert / Notice Card": card_alert
+            "⚠️ Alert / Notification Card": card_alert
         }
         
-        fb_header = { "Header (Original)": '<header style="background:inherit;color:inherit;padding:15px 30px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(150,150,150,0.3);width:100%;"><div style="font-size:24px;font-weight:bold;color:#007acc;">🚀 MyLogo</div><nav style="display:flex;gap:20px;"><a href="#" style="color:inherit;text-decoration:none;font-weight:500;">Home</a></nav></header>' }
+        fb_header = { "Header (Base)": '<header style="background:inherit;color:inherit;padding:15px 30px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(150,150,150,0.3);width:100%;"><div style="font-size:24px;font-weight:bold;color:#007acc;">🚀 MyLogo</div><nav style="display:flex;gap:20px;"><a href="#" style="color:inherit;text-decoration:none;font-weight:500;">Home</a></nav></header>' }
         fb_footer = {
-            "Template 1: Simple & Centered": '<footer style="background:rgba(0,0,0,0.8);color:#fff;padding:30px 20px;text-align:center;margin-top:20px;width:100%;"><h3 style="margin-bottom:10px;">Connect With Us</h3><p style="margin-bottom:15px;font-size:14px;">Address: 123 Main Street, Ho Chi Minh City</p></footer>',
-            "Template 2: Detailed columns & QR code": '<footer style="background:rgba(0,0,0,0.85);color:#fff;padding:40px 20px;font-family:sans-serif;margin-top:20px;width:100%;"><div style="display:flex;flex-wrap:wrap;gap:30px;max-width:1000px;margin:0 auto;justify-content:space-between;"><div style="flex:1 1 0%;min-width:250px;max-width:100%;"><h3 style="color:#007acc;margin-top:0;">MyLogo</h3><p style="font-size:14px;color:#bbb;line-height:1.6;">A great solution.</p></div><div style="flex:1 1 0%;min-width:150px;max-width:100%;text-align:center;"><h4 style="margin-top:0;">Scan Zalo</h4><img src="https://via.placeholder.com/100" style="width:100px;"></div></div></footer>' 
+            "Template 1: Simple Centered": '<footer style="background:rgba(0,0,0,0.8);color:#fff;padding:30px 20px;text-align:center;margin-top:20px;width:100%;"><h3 style="margin-bottom:10px;">Connect With Us</h3><p style="margin-bottom:15px;font-size:14px;">Address: 123 Main Street, City</p></footer>',
+            "Template 2: Multi-column & QR": '<footer style="background:rgba(0,0,0,0.85);color:#fff;padding:40px 20px;font-family:sans-serif;margin-top:20px;width:100%;"><div style="display:flex;flex-wrap:wrap;gap:30px;max-width:1000px;margin:0 auto;justify-content:space-between;"><div style="flex:1 1 0%;min-width:250px;max-width:100%;"><h3 style="color:#007acc;margin-top:0;">MyLogo</h3><p style="font-size:14px;color:#bbb;line-height:1.6;">Great solutions for everyone.</p></div><div style="flex:1 1 0%;min-width:150px;max-width:100%;text-align:center;"><h4 style="margin-top:0;">Scan QR</h4><img src="https://via.placeholder.com/100" style="width:100px;"></div></div></footer>'
         }
 
         fb_margin = {
-            "📐 Standard Box Margin (Max 1200px - Centered)": '<div class="container-box" style="max-width:1200px; margin:0 auto; padding:0 15px; width:100%; box-sizing:border-box;"><div style="border:1px dashed #555; padding:20px; text-align:center; opacity:0.6;">1200px Container</div></div>',
-            "📐 Article Margin (Max 800px - Centered)": '<div class="container-article" style="max-width:800px; margin:0 auto; padding:0 15px; width:100%; box-sizing:border-box;"><div style="border:1px dashed #555; padding:20px; text-align:center; opacity:0.6;">800px Container</div></div>',
-            "📐 Left-Aligned Margin (Indented)": '<div class="container-left" style="margin-left:5%; padding-left:20px; border-left:3px solid #007acc; width:95%; box-sizing:border-box;"><div style="padding:10px; opacity:0.6;">Left-aligned container</div></div>',
-            "📐 Full-Bleed Margin (With Padding)": '<div class="container-fluid" style="width:100%; padding:20px; box-sizing:border-box;"><div style="border:1px dashed #555; padding:20px; text-align:center; opacity:0.6;">Full-bleed container</div></div>' 
+            "📐 Standard Box Container (Max 1200px - Center)": '<div class="container-box" style="max-width:1200px; margin:0 auto; padding:0 15px; width:100%; box-sizing:border-box;"><div style="border:1px dashed #555; padding:20px; text-align:center; opacity:0.6;">1200px Container</div></div>',
+            "📐 Article Container (Max 800px - Center)": '<div class="container-article" style="max-width:800px; margin:0 auto; padding:0 15px; width:100%; box-sizing:border-box;"><div style="border:1px dashed #555; padding:20px; text-align:center; opacity:0.6;">800px Container</div></div>',
+            "📐 Left Indented Container": '<div class="container-left" style="margin-left:5%; padding-left:20px; border-left:3px solid #007acc; width:95%; box-sizing:border-box;"><div style="padding:10px; opacity:0.6;">Left Indented Container</div></div>',
+            "📐 Full-width Fluid Container": '<div class="container-fluid" style="width:100%; padding:20px; box-sizing:border-box;"><div style="border:1px dashed #555; padding:20px; text-align:center; opacity:0.6;">Full-width Fluid Container</div></div>'
         }
         
         fb_divider = {
-            "➖ Horizontal Rule (Bold)": '<hr style="border:none; border-top:2px solid rgba(150,150,150,0.5); margin:20px 0; width:100%;">',
-            "➖ Horizontal Rule (Faded / Dashed)": '<hr style="border:none; border-top:1px dashed rgba(150,150,150,0.3); margin:20px 0; width:100%;">',
+            "➖ Horizontal Rule (Solid)": '<hr style="border:none; border-top:2px solid rgba(150,150,150,0.5); margin:20px 0; width:100%;">',
+            "➖ Horizontal Rule (Dashed/Light)": '<hr style="border:none; border-top:1px dashed rgba(150,150,150,0.3); margin:20px 0; width:100%;">',
             "📏 Spacer (20px)": '<div class="spacer" style="height:20px; width:100%; clear:both;"></div>',
-            "📏 Spacer (50px)": '<div class="spacer" style="height:50px; width:100%; clear:both;"></div>' 
+            "📏 Spacer (50px)": '<div class="spacer" style="height:50px; width:100%; clear:both;"></div>'
         }
 
         fb_form = {
-            "📝 Contact Form (Formspree)": (
+            "📝 Contact Form (Formspree Ready)": (
                 '<form action="https://formspree.io/f/MAY_BE_YOUR_API" method="POST" '
                 'style="background:rgba(255,255,255,0.02); padding:20px; border-radius:8px; '
                 'border:1px solid #444; max-width:500px; margin:0 auto; width:100%; '
                 'font-family:sans-serif; color:inherit;">'
-                '<h3 style="margin-top:0; color:#00d2ff; margin-bottom:20px; font-size: 22px;">Contact Us</h3>' 
+                '<h3 style="margin-top:0; color:#00d2ff; margin-bottom:20px; font-size: 22px;">Contact Us</h3>'
                 '<div style="margin-bottom:15px;">'
-                '<label style="display:block; margin-bottom:5px; font-size:14px; opacity:0.8;">Full Name</label>' 
+                '<label style="display:block; margin-bottom:5px; font-size:14px; opacity:0.8;">Full Name</label>'
                 '<input type="text" name="name" required style="width:100%; padding:10px; '
                 'border-radius:4px; border:1px solid #555; background:rgba(0,0,0,0.2); '
                 'color:inherit; box-sizing:border-box;">'
                 '</div>'
                 '<div style="margin-bottom:15px;">'
-                '<label style="display:block; margin-bottom:5px; font-size:14px; opacity:0.8;">Your Email</label>' 
+                '<label style="display:block; margin-bottom:5px; font-size:14px; opacity:0.8;">Your Email</label>'
                 '<input type="email" name="email" required style="width:100%; padding:10px; '
                 'border-radius:4px; border:1px solid #555; background:rgba(0,0,0,0.2); '
                 'color:inherit; box-sizing:border-box;">'
                 '</div>'
                 '<div style="margin-bottom:20px;">'
-                '<label style="display:block; margin-bottom:5px; font-size:14px; opacity:0.8;">Message Content</label>' 
+                '<label style="display:block; margin-bottom:5px; font-size:14px; opacity:0.8;">Message Content</label>'
                 '<textarea name="message" rows="4" required style="width:100%; padding:10px; '
                 'border-radius:4px; border:1px solid #555; background:rgba(0,0,0,0.2); '
                 'color:inherit; box-sizing:border-box; resize:vertical;"></textarea>'
                 '</div>'
                 '<button type="submit" style="background:#00d2ff; color:#000; font-weight:bold; '
                 'padding:12px 25px; border:none; border-radius:4px; cursor:pointer; width:100%; '
-                'font-size:15px; transition:0.3s;">Send Message 🚀</button>' 
+                'font-size:15px; transition:0.3s;">Send Message 🚀</button>'
                 '</form>'
             )
         }
-        
+
         js_tab_switch = "var tId=this.getAttribute('data-trang'); document.querySelectorAll('.trang-noi-dung').forEach(function(el){el.classList.remove('trang-dang-hien-thi'); el.style.display='none';}); var target=document.getElementById(tId); if(target){target.classList.add('trang-dang-hien-thi'); target.style.display='block';} document.querySelectorAll('.nut-chuyen-trang').forEach(function(btn){btn.classList.remove('menu-dang-chon'); if(btn.getAttribute('data-trang')===tId) btn.classList.add('menu-dang-chon');});"
 
         js_pag_switch = "var p=this.closest('.pagination-wrapper');var act=this.getAttribute('data-action');var pId=this.getAttribute('data-page');var pgs=Array.from(p.querySelectorAll('.phan-trang-noi-dung'));var btns=Array.from(p.querySelectorAll('.nut-phan-trang'));var cIdx=pgs.findIndex(x=>x.style.display==='block');if(cIdx<0)cIdx=0;var nIdx=cIdx;if(act==='first')nIdx=0;if(act==='last')nIdx=pgs.length-1;if(act==='prev')nIdx=Math.max(0,cIdx-1);if(act==='next')nIdx=Math.min(pgs.length-1,cIdx+1);if(pId)nIdx=pgs.findIndex(x=>x.id===pId);if(nIdx<0)return;pgs.forEach((el,i)=>el.style.display=(i===nIdx)?'block':'none');p.querySelectorAll('.pag-dots').forEach(d=>d.remove());var aBg=btns.length>0?(btns[0].getAttribute('data-active-bg')||'#007acc'):'#007acc';btns.forEach((b,i)=>{if(i===nIdx){b.style.background=aBg;b.style.color='#fff';b.style.boxShadow='0 0 10px '+aBg;}else{b.style.background='transparent';b.style.color='inherit';b.style.boxShadow='none';}var disp=b.getAttribute('data-disp')||'inline-block';if(btns.length>5){if(i===0||i===btns.length-1||(i>=nIdx-1&&i<=nIdx+1)){b.style.display=disp;if(i===nIdx-1&&i>1){var d1=document.createElement('span');d1.className='pag-dots';d1.innerHTML='...';d1.style.padding='0 5px';b.parentNode.insertBefore(d1,b);}if(i===btns.length-1&&nIdx<btns.length-3){var d2=document.createElement('span');d2.className='pag-dots';d2.innerHTML='...';d2.style.padding='0 5px';b.parentNode.insertBefore(d2,b);}}else{b.style.display='none';}}else{b.style.display=disp;}});"
 
         fb_nav = {
-            "🔢 Pagination (Square Blocks) - Standalone": f'<div class="pagination-wrapper" style="width:100%; margin:20px 0; border: 1px dashed rgba(150,150,150,0.5); padding: 15px; border-radius: 8px; box-sizing: border-box;"><div id="sub-page-1" class="phan-trang-noi-dung" style="display:block; min-height:150px; width:100%; margin-bottom:20px;"><h3 style="margin-top:0; color:#007acc;">Page 1 Content</h3><p style="opacity:0.7;">Drag and drop Text, Table, Image... in here.</p></div><div id="sub-page-2" class="phan-trang-noi-dung" style="display:none; min-height:150px; width:100%; margin-bottom:20px;"><h3 style="margin-top:0; color:#007acc;">Page 2 Content</h3><p style="opacity:0.7;">This is page 2.</p></div><div class="pagination" style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; font-family:sans-serif;"><a class="nav-phan-trang" data-action="first" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&laquo;</a><a class="nav-phan-trang" data-action="prev" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&lsaquo;</a><a class="nut-phan-trang" data-page="sub-page-1" data-active-bg="#007acc" data-disp="inline-block" onclick="{js_pag_switch}" style="padding:8px 15px; background:#007acc; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer; box-shadow:0 0 10px rgba(0,122,204,0.5); border: 1px solid rgba(150,150,150,0.3);">1</a><a class="nut-phan-trang" data-page="sub-page-2" data-active-bg="#007acc" data-disp="inline-block" onclick="{js_pag_switch}" style="padding:8px 15px; background:transparent; color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer; border: 1px solid rgba(150,150,150,0.3);">2</a><a class="nav-phan-trang" data-action="next" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&rsaquo;</a><a class="nav-phan-trang" data-action="last" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&raquo;</a></div></div>',
+            "🔢 Pagination (Square Style) - Standalone": f'<div class="pagination-wrapper" style="width:100%; margin:20px 0; border: 1px dashed rgba(150,150,150,0.5); padding: 15px; border-radius: 8px; box-sizing: border-box;"><div id="sub-page-1" class="phan-trang-noi-dung" style="display:block; min-height:150px; width:100%; margin-bottom:20px;"><h3 style="margin-top:0; color:#007acc;">Page 1 Content</h3><p style="opacity:0.7;">Drag and drop text, tables, images... here.</p></div><div id="sub-page-2" class="phan-trang-noi-dung" style="display:none; min-height:150px; width:100%; margin-bottom:20px;"><h3 style="margin-top:0; color:#007acc;">Page 2 Content</h3><p style="opacity:0.7;">This is page 2.</p></div><div class="pagination" style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; font-family:sans-serif;"><a class="nav-phan-trang" data-action="first" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&laquo;</a><a class="nav-phan-trang" data-action="prev" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&lsaquo;</a><a class="nut-phan-trang" data-page="sub-page-1" data-active-bg="#007acc" data-disp="inline-block" onclick="{js_pag_switch}" style="padding:8px 15px; background:#007acc; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer; box-shadow:0 0 10px rgba(0,122,204,0.5); border: 1px solid rgba(150,150,150,0.3);">1</a><a class="nut-phan-trang" data-page="sub-page-2" data-active-bg="#007acc" data-disp="inline-block" onclick="{js_pag_switch}" style="padding:8px 15px; background:transparent; color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer; border: 1px solid rgba(150,150,150,0.3);">2</a><a class="nav-phan-trang" data-action="next" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&rsaquo;</a><a class="nav-phan-trang" data-action="last" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&raquo;</a></div></div>',
             
-            "🔢 Pagination (Soft Round) - Standalone": f'<div class="pagination-wrapper" style="width:100%; margin:20px 0; border: 1px dashed rgba(150,150,150,0.5); padding: 15px; border-radius: 8px; box-sizing: border-box;"><div id="sub-page-1-rnd" class="phan-trang-noi-dung" style="display:block; min-height:150px; width:100%; margin-bottom:20px;"><h3 style="margin-top:0; color:#28a745;">Page 1 Content</h3><p style="opacity:0.7;">Drag and drop Text, Table, Image... in here.</p></div><div id="sub-page-2-rnd" class="phan-trang-noi-dung" style="display:none; min-height:150px; width:100%; margin-bottom:20px;"><h3 style="margin-top:0; color:#28a745;">Page 2 Content</h3><p style="opacity:0.7;">This is page 2.</p></div><div class="pagination" style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; font-family:sans-serif;"><a class="nav-phan-trang" data-action="first" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer;">&laquo;</a><a class="nav-phan-trang" data-action="prev" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer;">&lsaquo;</a><a class="nut-phan-trang" data-page="sub-page-1-rnd" data-active-bg="#28a745" data-disp="flex" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#28a745; color:#fff; text-decoration:none; border-radius:50%; font-weight:bold; box-shadow:0 0 10px rgba(40,167,69,0.5); cursor:pointer; border: 1px solid rgba(150,150,150,0.3);">1</a><a class="nut-phan-trang" data-page="sub-page-2-rnd" data-active-bg="#28a745" data-disp="flex" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer; border: 1px solid rgba(150,150,150,0.3);">2</a><a class="nav-phan-trang" data-action="next" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer;">&rsaquo;</a><a class="nav-phan-trang" data-action="last" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer;">&raquo;</a></div></div>' 
+            "🔢 Pagination (Round Style) - Standalone": f'<div class="pagination-wrapper" style="width:100%; margin:20px 0; border: 1px dashed rgba(150,150,150,0.5); padding: 15px; border-radius: 8px; box-sizing: border-box;"><div id="sub-page-1-rnd" class="phan-trang-noi-dung" style="display:block; min-height:150px; width:100%; margin-bottom:20px;"><h3 style="margin-top:0; color:#28a745;">Page 1 Content</h3><p style="opacity:0.7;">Drag and drop text, tables, images... here.</p></div><div id="sub-page-2-rnd" class="phan-trang-noi-dung" style="display:none; min-height:150px; width:100%; margin-bottom:20px;"><h3 style="margin-top:0; color:#28a745;">Page 2 Content</h3><p style="opacity:0.7;">This is page 2.</p></div><div class="pagination" style="display:flex; justify-content:center; align-items:center; gap:8px; width:100%; font-family:sans-serif;"><a class="nav-phan-trang" data-action="first" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer;">&laquo;</a><a class="nav-phan-trang" data-action="prev" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer;">&lsaquo;</a><a class="nut-phan-trang" data-page="sub-page-1-rnd" data-active-bg="#28a745" data-disp="flex" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#28a745; color:#fff; text-decoration:none; border-radius:50%; font-weight:bold; box-shadow:0 0 10px rgba(40,167,69,0.5); cursor:pointer; border: 1px solid rgba(150,150,150,0.3);">1</a><a class="nut-phan-trang" data-page="sub-page-2-rnd" data-active-bg="#28a745" data-disp="flex" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer; border: 1px solid rgba(150,150,150,0.3);">2</a><a class="nav-phan-trang" data-action="next" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer;">&rsaquo;</a><a class="nav-phan-trang" data-action="last" onclick="{js_pag_switch}" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:50%; font-weight:bold; cursor:pointer;">&raquo;</a></div></div>'
         }
 
         row1.addWidget(create_dropdown_btn("🔲 Layout ▼", load_templates("layout.json", fb_layout)))
@@ -2289,16 +2418,16 @@ class UniversalHTMLEditor(QMainWindow):
         
         row2.addWidget(create_dropdown_btn("🔝 Header ▼", load_templates("header.json", fb_header)))
         row2.addWidget(create_dropdown_btn("🔚 Footer ▼", load_templates("footer.json", fb_footer)))
-        row2.addWidget(create_dropdown_btn("🔘 Button (Btn) ▼", load_templates("button.json", fb_button)))
+        row2.addWidget(create_dropdown_btn("🔘 Button ▼", load_templates("button.json", fb_button)))
 
         row2.addWidget(create_dropdown_btn("📝 Form ▼", load_templates("form.json", fb_form)))
         row2.addWidget(create_dropdown_btn("🔢 Pagination ▼", load_templates("pagination.json", fb_nav)))
-        
+
         btn_blank = QPushButton("📄 New Page ▼")
         btn_blank.setStyleSheet("background-color: #28a745; color: white; padding: 6px; border-radius: 4px; font-weight: bold;")
         menu_blank = QMenu(btn_blank)
         menu_blank.setStyleSheet("QMenu { background:#252526; color:white; border:1px solid #3e3e42; } QMenu::item { padding: 5px 20px; } QMenu::item:selected {background:#094771;}")
-        menu_blank.addAction("🌞 Blank Page (Light Mode)").triggered.connect(lambda: self.create_blank_page("light"))
+        menu_blank.addAction("🌞 Light Page (Light Mode)").triggered.connect(lambda: self.create_blank_page("light"))
         menu_blank.addAction("🌙 Dark Page (Dark Mode)").triggered.connect(lambda: self.create_blank_page("dark"))
         btn_blank.setMenu(menu_blank)
         row3.addWidget(btn_blank)
@@ -2312,7 +2441,7 @@ class UniversalHTMLEditor(QMainWindow):
         btn_dash.setMenu(menu_dash)
         row3.addWidget(btn_dash)
 
-        row3.addWidget(create_dropdown_btn("📐 Margin ▼", load_templates("margin.json", fb_margin)))
+        row3.addWidget(create_dropdown_btn("📐 Margin/Container ▼", load_templates("margin.json", fb_margin)))
 
         row3.addWidget(create_dropdown_btn("➖ Divider ▼", load_templates("divider.json", fb_divider)))
         
@@ -2359,6 +2488,7 @@ class UniversalHTMLEditor(QMainWindow):
             if 'display:flex' in style_str or 'display:grid' in style_str: return True
             if any(k in cls_str for k in ['wrap', 'row', 'col', 'container', 'grid', 'page', 'sidebar', 'main-content']): return True
             return False
+
         target = t
         if not target or target.name in ['html', 'head', 'body']:
             target = get_active_page()
@@ -2366,10 +2496,9 @@ class UniversalHTMLEditor(QMainWindow):
         last = None
         for e in els:
             if e.name in ['header', 'footer']:
-                container_to_append = body # Default
+                container_to_append = body
 
                 if target and target.name not in ['body', 'html']:
-
                     is_sidebar = 'sidebar' in target.get('class', [])
                     is_main = 'main-content' in target.get('class', [])
                     
@@ -2403,21 +2532,17 @@ class UniversalHTMLEditor(QMainWindow):
                 text_tags = ['p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'label', 'button', 'i', 'b', 'strong']
                 
                 if target.name in void_tags or target.name in text_tags:
-
                     target.insert_after(e)
                 else:
-
                     is_new_element_big = is_layout_container(e) or e.name == 'table' or 'card' in " ".join(e.get('class', [])).lower()
                     is_target_layout = is_layout_container(target)
                     
                     if is_new_element_big and not is_target_layout:
-
                         if target.parent and target.parent.name != 'body':
                             target.insert_after(e)
                         else:
-                            target.append(e) # Safely place inside the tag so it does not spill out into Body
+                            target.append(e)
                     else:
-
                         target.append(e)
 
             if e.name != 'style': last = e
@@ -2427,21 +2552,119 @@ class UniversalHTMLEditor(QMainWindow):
         if last: self.select_tree_item_by_id(str(id(last)))
 
         if not t or t.name == 'body':
-            self.statusBar().showMessage("➕ Main design area found and tag inserted successfully!", 5000)
+            self.statusBar().showMessage("➕ Located main design area and inserted element successfully!", 5000)
         else:
-            self.statusBar().showMessage(f"➕ Block inserted successfully into the correct context of the currently selected area!", 3000)
+            self.statusBar().showMessage("➕ Inserted block into the currently selected container context!", 3000)
+
+    def quick_replace_image(self, item, t):
+        if getattr(self, 'current_file_path', None) and os.path.exists(self.current_file_path):
+            base_dir = os.path.dirname(os.path.abspath(self.current_file_path))
+        elif getattr(self, 'current_base_dir', None) and os.path.exists(self.current_base_dir):
+            base_dir = self.current_base_dir
+        else:
+            base_dir = BASE_DIR
+            
+        p, _ = QFileDialog.getOpenFileName(self, "Select New Image", base_dir, "Images (*.png *.jpg *.jpeg *.gif *.svg *.webp)")
+        if not p: return
+        
+        try:
+            target_path = os.path.relpath(p, base_dir).replace('\\', '/')
+        except ValueError:
+            target_path = "file:///" + p.replace('\\', '/')
+            
+        self.save_state_for_undo()
+        target_img = t
+        is_bg_image = False
+        st = str(t.get('style', '')).strip()
+        import re
+        
+        if t.name not in ['img', 'picture', 'source', 'svg']:
+            inner_img = t.find(['img', 'picture'])
+            if inner_img:
+                target_img = inner_img
+            elif 'url(' in st.lower() or 'background' in st.lower():
+                is_bg_image = True
+
+        if is_bg_image:
+            st = re.sub(r'url\([^\)]+\)', f"url('{target_path}')", st, flags=re.IGNORECASE)
+            t['style'] = st.strip('; ')
+        elif target_img.name == 'picture':
+            for child in target_img.find_all(['source', 'img']):
+                if 'loading' in child.attrs: del child['loading']
+                if child.has_attr('srcset'): child['srcset'] = target_path
+                if child.has_attr('src'): child['src'] = target_path
+                if child.has_attr('data-src'): child['data-src'] = target_path
+                if child.has_attr('data-srcset'): child['data-srcset'] = target_path
+        else:
+            for lazy_attr in ['loading', 'decoding']:
+                if lazy_attr in target_img.attrs:
+                    del target_img[lazy_attr]
+            
+            target_img['src'] = target_path
+            for attr in ['srcset', 'data-src', 'data-lazy', 'data-lazy-src', 'data-original', 'data-srcset']:
+                if target_img.has_attr(attr):
+                    target_img[attr] = target_path
+        if self.current_node == t or self.current_node == target_img:
+            self.inp_src.setText(target_path)
+            if is_bg_image:
+                self.inp_style.setPlainText(t.get('style', '').replace('; ', ';\n'))
+            
+        self.refresh_tree()
+        self.update_preview()
+
+        eid = t.get('data-editor-id')
+        if not eid and target_img != t:
+            eid = target_img.get('data-editor-id')
+            
+        if eid:
+            js = f"""
+            (function(){{
+                var el = document.querySelector('[data-editor-id="{eid}"]');
+                if(!el) return;
+                var newUrl = {json.dumps(target_path)};
+                
+                if ({'true' if is_bg_image else 'false'}) {{
+                    el.style.backgroundImage = "url('" + newUrl + "')";
+                    return;
+                }}
+                
+                var img = (el.tagName === 'IMG') ? el : el.querySelector('img');
+                if (img) {{
+                    img.removeAttribute('loading');
+                    img.removeAttribute('decoding');
+                    img.setAttribute('src', newUrl);
+                    img.src = newUrl;
+                    if(img.hasAttribute('srcset')) img.setAttribute('srcset', newUrl);
+                    if(img.hasAttribute('data-src')) img.setAttribute('data-src', newUrl);
+                    if(img.hasAttribute('data-srcset')) img.setAttribute('data-srcset', newUrl);
+                }}
+                
+                var pic = el.closest('picture') || (el.tagName === 'PICTURE' ? el : el.querySelector('picture'));
+                if (pic) {{
+                    pic.querySelectorAll('source, img').forEach(function(c){{
+                        c.removeAttribute('loading');
+                        if(c.hasAttribute('srcset')) c.setAttribute('srcset', newUrl);
+                        if(c.hasAttribute('src')) {{
+                            c.setAttribute('src', newUrl);
+                            c.src = newUrl;
+                        }}
+                    }});
+                }}
+            }})();
+            """
+            self.web_view.page().runJavaScript(js)
+            
+        self.statusBar().showMessage(f"🖼️ Replaced image successfully: {os.path.basename(p)}", 4000)
 
     def replace_image_via_js(self):
         p = self.get_relative_path("Select Image", "Images (*.png *.jpg *.jpeg *.gif *.svg *.webp)")
         if not p: return
         self.save_state_for_undo()
-        js = f"(function(){{ var t = window.lastContextTarget || window.lastClickTarget; if(t && t.tagName==='IMG') {{ t.setAttribute('src', {json.dumps(p)}); return 1; }} return 0; }})();"
-
-        self.web_view.page().runJavaScript(js, 0, lambda r: self.sync_from_preview() if r==1 else QMessageBox.warning(self, "Error", "Image tag not found."))
+        js = f"(function(){{ var t = window.lastContextTarget || window.lastClickTarget; if(!t) return 0; var img = (t.tagName==='IMG' || t.tagName==='PICTURE') ? t : t.querySelector('img'); if(img) {{ img.removeAttribute('loading'); img.setAttribute('src', {json.dumps(p)}); img.src = {json.dumps(p)}; if(img.hasAttribute('srcset')) img.setAttribute('srcset', {json.dumps(p)}); return 1; }} return 0; }})();"
+        self.web_view.page().runJavaScript(js, 0, lambda r: self.sync_from_preview() if r==1 else QMessageBox.warning(self, "Error", "No image tag found in this area."))
 
     def sync_from_preview(self, *args):
         if not self.soup: return
-
         self.web_view.page().runJavaScript("document.documentElement.outerHTML", 0, self.process_synced_html)
 
     def process_synced_html(self, html, auto_save=False, auto_save_as=False):
@@ -2459,6 +2682,7 @@ class UniversalHTMLEditor(QMainWindow):
             b = ns.find('body')
             if b is not None and len(b.find_all(True)) == 0 and len(self.soup.find('body').find_all(True)) > 0: return
             
+            self.is_dirty = True
             self.save_state_for_undo()
             if self.current_file_path:
                 bd = os.path.dirname(os.path.abspath(self.current_file_path))
@@ -2496,7 +2720,7 @@ class UniversalHTMLEditor(QMainWindow):
                 
             old_id = t.get('id')
             if old_id:
-                if isinstance(old_id, list): old_id = old_id[0] # Safety
+                if isinstance(old_id, list): old_id = old_id[0]
                 if old_id not in id_map:
                     clean_id = old_id.split("_copy")[0] if "_copy" in old_id else old_id
                     id_map[old_id] = f"{clean_id}_copy{random.randint(100,999)}"
@@ -2507,9 +2731,9 @@ class UniversalHTMLEditor(QMainWindow):
     def kbd_adjust_font(self, delta):
         js = f"""
         (function() {{
-            var target = window.currentEditingEl; // Get the tag where the cursor was placed for typing
+            var target = window.currentEditingEl;
             
-            if (!target) {{ // If not typing but only highlighting text
+            if (!target) {{
                 var sel = window.getSelection();
                 if (sel.rangeCount > 0 && sel.toString().trim() !== "") {{
                     var node = sel.anchorNode;
@@ -2517,14 +2741,14 @@ class UniversalHTMLEditor(QMainWindow):
                 }}
             }}
             
-            if (!target) target = document.querySelector('.editor-highlight'); // Fallback: use the currently highlighted (blue) tag
+            if (!target) target = document.querySelector('.editor-highlight');
             
             if (target) {{
                 var ce = target.closest('[data-editor-id]');
                 if (ce) {{
                     var currentSize = parseFloat(window.getComputedStyle(ce).fontSize) || 16;
                     var newSize = Math.max(8, currentSize + ({delta}));
-                    ce.style.setProperty('font-size', newSize + 'px', 'important'); // Force the size onto the view smoothly
+                    ce.style.setProperty('font-size', newSize + 'px', 'important');
                     return ce.getAttribute('data-editor-id') + '|' + newSize;
                 }}
             }}
@@ -2540,8 +2764,7 @@ class UniversalHTMLEditor(QMainWindow):
             if eid in self.node_map:
                 item = self.node_map[eid]
                 t = item.data(0, Qt.ItemDataRole.UserRole)
-                
-                # 1. Silently update the style into Python (Soup) (Bypass update_preview to avoid screen flicker)
+
                 st = str(t.get('style', ''))
                 import re
                 if 'font-size' in st:
@@ -2550,8 +2773,7 @@ class UniversalHTMLEditor(QMainWindow):
                     new_st = st.strip(';') + ("; " if st else "") + f"font-size: {new_size}px;"
                 
                 t['style'] = new_st.strip('; ')
-                
-                # 2. Automatically re-populate the CSS Config Form on the left if that tag is currently selected
+
                 if self.current_node == t:
                     self.on_item_clicked(item, 0)
                     
@@ -2608,84 +2830,99 @@ class UniversalHTMLEditor(QMainWindow):
 
         m = QMenu(self)
         m.setStyleSheet("QMenu { background:#252526; color:white; border:1px solid #3e3e42; padding:5px; font-size:13px; font-weight:bold;} QMenu::item:selected {background:#094771;} QMenu::item:disabled {color:#666;}")
+
+        style_str = str(t.get('style', '')).lower()
+        is_bg_img = 'url(' in style_str and 'background' in style_str
+
+        is_direct_img = t.name in ['img', 'picture', 'source', 'svg']
+        is_small_wrapper_img = False
+        if not is_direct_img and t.name in ['a', 'figure', 'span', 'div']:
+            cls_str = " ".join(t.get('class', [])).lower()
+            if not any(k in cls_str for k in ['row', 'col', 'container', 'grid', 'main', 'section', 'header', 'footer']):
+                if len(t.find_all('img')) == 1:
+                    is_small_wrapper_img = True
+                    
+        is_image_target = is_direct_img or is_small_wrapper_img or is_bg_img
         
-        if t.name == 'img': 
-            m.addAction("🖼️ Quick image swap...").triggered.connect(lambda: self.quick_replace_image(item, t))
-            m.addAction("🔄 Image fit mode (Crop to fill / Show entire image)").triggered.connect(lambda: self.toggle_image_fit(item, t))
+        if is_image_target: 
+            m.addAction("🖼️ Quick Replace Image (Fixes lazy-load & wrapper images)...").triggered.connect(lambda: self.quick_replace_image(item, t))
+            if t.name == 'img' or (is_small_wrapper_img and t.name not in ['body', 'html']):
+                m.addAction("🔄 Image Fit Mode (Cover / Contain)").triggered.connect(lambda: self.toggle_image_fit(item, t))
             m.addSeparator()
             
-        if len([c for c in t.children if isinstance(c, Tag)]) > 1: m.addAction("🔄 Reverse order").triggered.connect(lambda: self.reverse_children(item, t)); m.addSeparator()
+        if len([c for c in t.children if isinstance(c, Tag)]) > 1: m.addAction("🔄 Reverse Children Order").triggered.connect(lambda: self.reverse_children(item, t)); m.addSeparator()
 
-        if t.name not in ['body', 'html']:
-            menu_add_img = m.addMenu("➕ Insert Image (OUTSIDE - Adjacent)...")
-            menu_add_img.addAction("⬅️ Insert to the Left").triggered.connect(lambda: self.insert_new_image_relative(item, t, "left"))
-            menu_add_img.addAction("➡️ Insert to the Right").triggered.connect(lambda: self.insert_new_image_relative(item, t, "right"))
-            menu_add_img.addAction("⬆️ Insert Above").triggered.connect(lambda: self.insert_new_image_relative(item, t, "above"))
-            menu_add_img.addAction("⬇️ Insert Below").triggered.connect(lambda: self.insert_new_image_relative(item, t, "below"))
+        if t.name not in ['body', 'html'] or t.name in ['div', 'section', 'header', 'footer', 'main', 'article', 'aside', 'body']:
+            m_img = m.addMenu("🖼️ Insert & Manage Image (Resizable)...")
             
-            menu_add_img_in = m.addMenu("📥 Add Image (INSIDE this tag)...")
-            menu_add_img_in.addAction("⬅️ On the Left (Text wraps around)").triggered.connect(lambda: self.insert_new_image_inside(item, t, "left"))
-            menu_add_img_in.addAction("➡️ On the Right (Text wraps around)").triggered.connect(lambda: self.insert_new_image_inside(item, t, "right"))
-            menu_add_img_in.addAction("⬆️ On Top (Centered)").triggered.connect(lambda: self.insert_new_image_inside(item, t, "top"))
-            menu_add_img_in.addAction("⬇️ On the Bottom (Centered)").triggered.connect(lambda: self.insert_new_image_inside(item, t, "bottom"))
+            if t.name not in ['body', 'html']:
+                m_img_in = m_img.addMenu("📥 Insert INSIDE this block (Text wrapped)")
+                m_img_in.addAction("⬅️ Align Left").triggered.connect(lambda: self.insert_new_image_inside(item, t, "left"))
+                m_img_in.addAction("➡️ Align Right").triggered.connect(lambda: self.insert_new_image_inside(item, t, "right"))
+                m_img_in.addAction("⬆️ Align Top").triggered.connect(lambda: self.insert_new_image_inside(item, t, "top"))
+                m_img_in.addAction("⬇️ Align Bottom").triggered.connect(lambda: self.insert_new_image_inside(item, t, "bottom"))
+                
+                m_img_out = m_img.addMenu("➕ Insert OUTSIDE this block (Standalone)")
+                m_img_out.addAction("⬅️ Insert Left (Split column)").triggered.connect(lambda: self.insert_new_image_relative(item, t, "left"))
+                m_img_out.addAction("➡️ Insert Right (Split column)").triggered.connect(lambda: self.insert_new_image_relative(item, t, "right"))
+                m_img_out.addAction("⬆️ Insert Above").triggered.connect(lambda: self.insert_new_image_relative(item, t, "above"))
+                m_img_out.addAction("⬇️ Insert Below").triggered.connect(lambda: self.insert_new_image_relative(item, t, "below"))
+                m_img.addSeparator()
+
+            if t.name in ['div', 'section', 'header', 'footer', 'main', 'article', 'aside', 'body']:
+                m_img.addAction("🌄 Set as Background Image...").triggered.connect(lambda: self.set_background_image(item, t))
+
+            if 'image-wrapper-free' in t.get('class', []) or (t.parent and 'image-wrapper-free' in t.parent.get('class', [])):
+                m_img.addSeparator()
+                m_img.addAction("🔒 Lock Image Frame (Disable resize handle)").triggered.connect(lambda: self.lock_floating_image(item, t))
+                
             m.addSeparator()
 
-        m.addAction("🛸 Draw Free Floating Image (Draggable)...").triggered.connect(lambda: self.insert_floating_image(item, t))
-
-        st_t = str(t.get('style', '')).replace(' ', '')
-        if 'position:absolute' in st_t or 'free-floating-element' in t.get('class', []):
-            m_pin = m.addMenu("📌 Anchor / Pin Floating Image (Prevents flying off on zoom)...")
-            m_pin.addAction("↖️ Anchor Top-Left Corner").triggered.connect(lambda: self.pin_floating_image(item, t, "top-left"))
-            m_pin.addAction("↗️ Anchor Top-Right Corner").triggered.connect(lambda: self.pin_floating_image(item, t, "top-right"))
-            m_pin.addAction("↙️ Anchor Bottom-Left Corner").triggered.connect(lambda: self.pin_floating_image(item, t, "bottom-left"))
-            m_pin.addAction("↘️ Anchor Bottom-Right Corner").triggered.connect(lambda: self.pin_floating_image(item, t, "bottom-right"))
-            m_pin.addAction("🎯 Anchor Center").triggered.connect(lambda: self.pin_floating_image(item, t, "center"))
-            m_pin.addSeparator()
-            m_pin.addAction("🔒 Lock Dragging (Fix current coordinates)").triggered.connect(lambda: self.lock_floating_image(item, t))
-            
-        m.addSeparator()
+        if t.name not in ['body', 'html', 'img']:
+            m.addAction("📐 Toggle Free Resizing (Resize Handle)...").triggered.connect(lambda: self.toggle_resize_block(item, t))
+            m.addSeparator()
 
         m.addAction("🎨 Change Block Background Color...").triggered.connect(lambda: self.quick_change_bg_color(item, t))
         m.addAction("✨ Add Hover Effect...").triggered.connect(lambda: self.add_hover_effect(item, t))
-        m.addAction("🔲 Toggle Border On/Off...").triggered.connect(lambda: self.toggle_border(item, t))
+        m.addAction("🔲 Toggle Border...").triggered.connect(lambda: self.toggle_border(item, t))
 
-        m_text = m.addMenu("📝 Text Processing (Format & Edit)...")
-        
-        m_text.addAction("✂️ Cut Text (Cut)").triggered.connect(lambda: self.web_view.page().triggerAction(QWebEnginePage.WebAction.Cut))
-        m_text.addAction("📋 Copy Text (Copy)").triggered.connect(lambda: self.web_view.page().triggerAction(QWebEnginePage.WebAction.Copy))
-        m_text.addAction("📌 Paste Text (Paste)").triggered.connect(lambda: self.web_view.page().triggerAction(QWebEnginePage.WebAction.Paste))
+        m_text = m.addMenu("📝 Text Formatting & Editing...")
+        m_text.addAction("✂️ Cut").triggered.connect(lambda: self.web_view.page().triggerAction(QWebEnginePage.WebAction.Cut))
+        m_text.addAction("📋 Copy").triggered.connect(lambda: self.web_view.page().triggerAction(QWebEnginePage.WebAction.Copy))
+        m_text.addAction("📌 Paste").triggered.connect(lambda: self.web_view.page().triggerAction(QWebEnginePage.WebAction.Paste))
+        m_text.addSeparator()
+        m_text.addAction("𝐁 Bold Selected Text (Ctrl+B)").triggered.connect(lambda: self.exec_text_cmd('bold'))
+        m_text.addAction("𝐼 Italicize Selected Text (Ctrl+I)").triggered.connect(lambda: self.exec_text_cmd('italic'))
+        m_text.addAction("̲U Underline Selected Text (Ctrl+U)").triggered.connect(lambda: self.exec_text_cmd('underline'))
+        m_text.addAction("🎨 Color Selected Text...").triggered.connect(self.change_selected_text_color)
+
+        m_text.addAction("🔤 Change Font Family...").triggered.connect(lambda: self.change_font_family(t))
         m_text.addSeparator()
         
-        m_text.addAction("𝐁 Bold selected text (Ctrl+B)").triggered.connect(lambda: self.exec_text_cmd('bold'))
-        m_text.addAction("𝐼 Italicize selected text (Ctrl+I)").triggered.connect(lambda: self.exec_text_cmd('italic'))
-        m_text.addAction("̲U Underline selected text (Ctrl+U)").triggered.connect(lambda: self.exec_text_cmd('underline'))
-        m_text.addAction("🎨 Color the highlighted text...").triggered.connect(self.change_selected_text_color)
-        m_text.addSeparator()
-        m_text.addAction("➕ Increase font size (Whole block +2px)").triggered.connect(lambda: self.change_font_size(t, 2))
-        m_text.addAction("➖ Decrease font size (Whole block -2px)").triggered.connect(lambda: self.change_font_size(t, -2))
+        m_text.addAction("➕ Increase Font Size (+2px)").triggered.connect(lambda: self.change_font_size(t, 2))
+        m_text.addAction("➖ Decrease Font Size (-2px)").triggered.connect(lambda: self.change_font_size(t, -2))
         m_text.addSeparator()
         m_text.addAction("⬅️ Align Left").triggered.connect(lambda: self.change_text_align(t, 'left'))
-        m_text.addAction("↔️ Align Center").triggered.connect(lambda: self.change_text_align(t, 'center'))
+        m_text.addAction("↔️ Center Align").triggered.connect(lambda: self.change_text_align(t, 'center'))
         m_text.addAction("➡️ Align Right").triggered.connect(lambda: self.change_text_align(t, 'right'))
 
         if t.name not in ['body', 'html', 'img', 'input', 'br', 'hr']:
-            m_add_text = m.addMenu("➕ Insert Text Box/Heading...")
-            m_add_text.addAction("🔲 Draw Free Text Box (Floating & Resizable)").triggered.connect(lambda: self.insert_floating_textbox(t))
-            m_add_text.addAction("🏷️ Large Heading (H1)").triggered.connect(lambda: self.insert_quick_html(t, '<h1 style="color:#007acc; margin-bottom:10px;">New Title</h1>'))
-            m_add_text.addAction("💬 Text Paragraph (P)").triggered.connect(lambda: self.insert_quick_html(t, '<p style="line-height:1.6; opacity:0.8;">Enter your text content here...</p>'))
-            
-            # --- INSERT MULTI-DIRECTIONAL TABLE ---
-            m_add_tbl = m.addMenu("📊 Insert Table (multi-directional)...")
-            m_add_tbl.addAction("⬅️ On the Left (Split frame in half)").triggered.connect(lambda: self.insert_component_relative(item, t, "left", "table"))
-            m_add_tbl.addAction("➡️ On the Right (Split frame in half)").triggered.connect(lambda: self.insert_component_relative(item, t, "right", "table"))
-            m_add_tbl.addAction("⬆️ On Top (Push this tag down)").triggered.connect(lambda: self.insert_component_relative(item, t, "above", "table"))
-            m_add_tbl.addAction("⬇️ On the Bottom (Push this tag up)").triggered.connect(lambda: self.insert_component_relative(item, t, "below", "table"))
+            m_add_text = m.addMenu("➕ Insert Text Box / Heading...")
+            m_add_text.addAction("🔲 Free Floating Text Box (Resizable)").triggered.connect(lambda: self.insert_floating_textbox(t))
+            m_add_text.addAction("🏷️ Heading 1 (H1)").triggered.connect(lambda: self.insert_quick_html(t, '<h1 style="color:#007acc; margin-bottom:10px;">New Heading</h1>'))
+            m_add_text.addAction("💬 Paragraph (P)").triggered.connect(lambda: self.insert_quick_html(t, '<p style="line-height:1.6; opacity:0.8;">Enter your paragraph text here...</p>'))
+
+            m_add_tbl = m.addMenu("📊 Insert Table (Multi-directional)...")
+            m_add_tbl.addAction("⬅️ Insert Left (Split view)").triggered.connect(lambda: self.insert_component_relative(item, t, "left", "table"))
+            m_add_tbl.addAction("➡️ Insert Right (Split view)").triggered.connect(lambda: self.insert_component_relative(item, t, "right", "table"))
+            m_add_tbl.addAction("⬆️ Insert Above").triggered.connect(lambda: self.insert_component_relative(item, t, "above", "table"))
+            m_add_tbl.addAction("⬇️ Insert Below").triggered.connect(lambda: self.insert_component_relative(item, t, "below", "table"))
             
         m.addSeparator()
 
         is_pagination = False
         pag_container = None
-
+        
         if 'pagination' in t.get('class', []):
             is_pagination = True; pag_container = t
         elif t.parent and 'pagination' in t.parent.get('class', []):
@@ -2694,40 +2931,37 @@ class UniversalHTMLEditor(QMainWindow):
             is_pagination = True; pag_container = t.parent
 
         if is_pagination and pag_container:
-            m.addAction("📄 ADD ANOTHER PAGE (Create new number + Blank frame)").triggered.connect(lambda: self.add_pagination_page(pag_container))
+            m.addAction("📄 ADD PAGINATION PAGE (New number + blank frame)").triggered.connect(lambda: self.add_pagination_page(pag_container))
             m.addSeparator()
 
         m_add_layer = m.addMenu("📦 Add Layer / Category...")
-        m_add_layer.addAction("📌 Add Blank Layer as SIBLING").triggered.connect(lambda: self.add_blank_layer(item, t, "sibling"))
-        m_add_layer.addAction("📥 Add Blank Layer INSIDE (Child)").triggered.connect(lambda: self.add_blank_layer(item, t, "inside"))
+        m_add_layer.addAction("📌 Add Blank Layer (Sibling)").triggered.connect(lambda: self.add_blank_layer(item, t, "sibling"))
+        m_add_layer.addAction("📥 Add Blank Layer (Child)").triggered.connect(lambda: self.add_blank_layer(item, t, "inside"))
         m_add_layer.addSeparator()
-        m_add_layer.addAction("↳ Add Sub-item (Sub-menu Folder) to this Menu").triggered.connect(lambda: self.add_sub_item(item, t))
+        m_add_layer.addAction("↳ Add Sub-menu Item to Menu").triggered.connect(lambda: self.add_sub_item(item, t))
         m_add_layer.addAction("➖ Add Sibling Category").triggered.connect(lambda: self.add_sibling_category(item, t))
-        m_add_layer.addAction("🔽 Create Hidden Content Block (Opens when this item is clicked)").triggered.connect(lambda: self.create_collapsible_content(item, t))
-        m_add_layer.addAction("🔗 Open New Blank Page & Attach Link to this Button").triggered.connect(lambda: self.create_linked_page(item, t))
+        m_add_layer.addAction("🔽 Create Collapsible Content Block (Toggle on click)").triggered.connect(lambda: self.create_collapsible_content(item, t))
+        m_add_layer.addAction("🔗 Create New Page & Link to Button").triggered.connect(lambda: self.create_linked_page(item, t))
         
         m_add_layer.addSeparator()
-
-        m_add_layer.addAction("📄 Create Blank Page (Attach as content for this Category)").triggered.connect(lambda: self.add_blank_page_to_menu(item, t))
-        m_add_layer.addAction("🔢 Insert Inner Pagination (INSIDE this block)").triggered.connect(lambda: self.insert_inner_pagination(item, t))
+        m_add_layer.addAction("📄 Create Blank Tab Page (Link as content for this category)").triggered.connect(lambda: self.add_blank_page_to_menu(item, t))
+        m_add_layer.addAction("🔢 Insert Internal Pagination (Inside block)").triggered.connect(lambda: self.insert_inner_pagination(item, t))
         
         m_add_layer.addSeparator()
-
-        m_add_layer.addAction("🧲 Attach SAFE Link/File Download (For dynamic Buttons)").triggered.connect(lambda: self.attach_safe_link(item, t))
+        m_add_layer.addAction("🧲 Attach Safe Link / Download File...").triggered.connect(lambda: self.attach_safe_link(item, t))
         
         m.addSeparator()
-
         is_locked = t.get('data-locked') == 'true'
         if is_locked:
-            m.addAction("🔓 UNLOCK Structure (Currently Locked)").triggered.connect(lambda: self.toggle_lock(item, t))
+            m.addAction("🔓 UNLOCK Structure").triggered.connect(lambda: self.toggle_lock(item, t))
         else:
-            m.addAction("🔒 LOCK Structure (Protect against CSS breakage)").triggered.connect(lambda: self.toggle_lock(item, t))
+            m.addAction("🔒 LOCK Structure (Protect CSS)").triggered.connect(lambda: self.toggle_lock(item, t))
         m.addSeparator()
 
-        m.addAction("📏 DRAG & DROP TOOLS:").setEnabled(False)
-        a_vert = m.addAction("   ↕️ Drag Vertically (For Standalone Tags)")
-        a_horz = m.addAction("   ↔️ Drag Horizontally (For Stacked Tags)")
-        a_diag = m.addAction("   ⤡ Drag Corner (Images/Video only)")
+        m.addAction("📏 RESIZE TOOLS:").setEnabled(False)
+        a_vert = m.addAction("   ↕️ Vertical Resize (Standalone)")
+        a_horz = m.addAction("   ↔️ Horizontal Resize (Flex/Grid child)")
+        a_diag = m.addAction("   ⤡ Diagonal Resize (Image/Video)")
 
         is_img = t.name in ['img', 'video', 'iframe']
         is_flex_child = False
@@ -2750,19 +2984,19 @@ class UniversalHTMLEditor(QMainWindow):
                 a_horz.setEnabled(False) 
 
         m.addSeparator()
-        m.addAction("⚙️ Enter manual size parameters...").triggered.connect(lambda: self.prepare_quick_resize(item, t))
+        m.addAction("⚙️ Manual Dimension Settings...").triggered.connect(lambda: self.prepare_quick_resize(item, t))
 
-        m.addAction("🛠️ Edit raw HTML code directly (Raw Code)...").triggered.connect(lambda: self.edit_raw_html(item, t))
+        m.addAction("🛠️ Edit Raw HTML Code...").triggered.connect(lambda: self.edit_raw_html(item, t))
         
         m.addSeparator()
 
         if t.name not in ['body', 'html']:
-            m.addAction("👯 Duplicate (Duplicate)").triggered.connect(lambda: self.quick_duplicate(item, t))
-            m.addAction("✂️ Cut HTML Tag (Cut)").triggered.connect(lambda: self.cut_element(item, t))
-        m.addAction("📋 Copy HTML Tag (Smart Macro)").triggered.connect(lambda: self.copy_element(item, t))
+            m.addAction("👯 Duplicate").triggered.connect(lambda: self.quick_duplicate(item, t))
+            m.addAction("✂️ Cut HTML Element").triggered.connect(lambda: self.cut_element(item, t))
+        m.addAction("📋 Copy HTML Element (Smart Macro)").triggered.connect(lambda: self.copy_element(item, t))
         
-        p_in = m.addAction("📌 Paste INSIDE"); p_in.triggered.connect(lambda: self.paste_element(item, t, "inside"))
-        p_sib = m.addAction("📌 Paste as SIBLING"); p_sib.triggered.connect(lambda: self.paste_element(item, t, "sibling"))
+        p_in = m.addAction("📌 Paste INSIDE (Child)"); p_in.triggered.connect(lambda: self.paste_element(item, t, "inside"))
+        p_sib = m.addAction("📌 Paste SIBLING"); p_sib.triggered.connect(lambda: self.paste_element(item, t, "sibling"))
         if t.name in ['body', 'html']: p_sib.setEnabled(False)
         if not self.clipboard_node: p_in.setEnabled(False); p_sib.setEnabled(False)
 
@@ -2770,7 +3004,7 @@ class UniversalHTMLEditor(QMainWindow):
         if t.name not in ['body', 'html']: m.addAction("🗑️ DELETE").triggered.connect(lambda: self.delete_html_element(item, t))
         
         m.addSeparator()
-        m.addAction("🔄 Sync content").triggered.connect(self.sync_from_preview)
+        m.addAction("🔄 Sync Content from Preview").triggered.connect(self.sync_from_preview)
         
         m.exec(global_pos)
 
@@ -2786,8 +3020,6 @@ class UniversalHTMLEditor(QMainWindow):
             if(!el) return;
 
             if ({'true' if is_img else 'false'}) {{
-                /* --- FIX FOR IMAGE CORNER-DRAG DOWN TO THE MILLIMETER --- */
-                /* Since the default CSS resize does not work on IMG, we manually build a "Drag Handle" orange dot attached to the image */
                 var oldH = document.getElementById('magic-img-resizer');
                 if(oldH) oldH.remove();
 
@@ -2797,7 +3029,6 @@ class UniversalHTMLEditor(QMainWindow):
                 hnd.style.cssText = 'position:absolute; width:28px; height:28px; background:#e67e22; color:#fff; text-align:center; line-height:28px; cursor:nwse-resize; z-index:2147483647; border-radius:50%; font-size:15px; box-shadow:0 2px 6px rgba(0,0,0,0.5); font-weight:bold;';
                 document.body.appendChild(hnd);
 
-                // Function to update the handle's position based on the image's real coordinates
                 function updateHndPos() {{
                     var rect = el.getBoundingClientRect();
                     hnd.style.left = (rect.right - 14 + window.scrollX) + 'px';
@@ -2805,7 +3036,6 @@ class UniversalHTMLEditor(QMainWindow):
                 }}
                 updateHndPos();
 
-                // Remove the barrier left over from the old configuration
                 el.style.setProperty('max-width', 'none', 'important');
                 el.style.setProperty('min-width', '10px', 'important');
 
@@ -2840,7 +3070,6 @@ class UniversalHTMLEditor(QMainWindow):
                 window.addEventListener('mouseup', onUp);
                 
             }} else {{
-                /* --- FIX FOR HORIZONTAL DRAG ON STACKED TAGS (FLEXBOX) --- */
                 var compStyle = window.getComputedStyle(el);
                 if(compStyle.flexGrow !== "0" && compStyle.display !== "none") {{
                     el.style.setProperty('flex', '0 0 auto', 'important');
@@ -2855,7 +3084,7 @@ class UniversalHTMLEditor(QMainWindow):
         """
         self.web_view.page().runJavaScript(js)
         
-        msg = "✅ The ⤡ orange drag handle has appeared at the image corner!" if is_img else "✅ The resize arrow has appeared at the bottom-right corner!"
+        msg = "✅ Orange resize handle ⤡ appeared at the corner!" if is_img else "✅ Resize icon appeared at the bottom-right corner!"
         self.statusBar().showMessage(msg, 7000)
 
     def prepare_quick_resize(self, item, t):
@@ -2894,7 +3123,7 @@ class UniversalHTMLEditor(QMainWindow):
                     style_dict[k.strip().lower()] = v.strip()
 
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"📏 Customize Size: <{t.name}>")
+        dialog.setWindowTitle(f"📏 Adjust Dimensions: <{t.name}>")
         dialog.setStyleSheet("""
             QDialog { background-color: #252526; font-family: 'Segoe UI'; font-size: 13px; font-weight: bold; }
             QLabel { color: #ce9178; }
@@ -2905,26 +3134,26 @@ class UniversalHTMLEditor(QMainWindow):
         """)
         layout = QVBoxLayout(dialog)
         
-        info_lbl = QLabel(f"💡 <b>Actual display size: {real_w} x {real_h}</b><br><i style='color:#888;font-size:12px;'>(Tip for large tags: it's best to leave Height as 'auto' so it hugs the content and text isn't clipped)</i>")
+        info_lbl = QLabel(f"💡 <b>Currently displayed: {real_w} x {real_h}</b><br><i style='color:#888;font-size:12px;'>(Tip for large blocks: Leave Height as 'auto' so it wraps content properly without clipping text)</i>")
         info_lbl.setWordWrap(True)
         layout.addWidget(info_lbl)
         
         form = QFormLayout()
         form.setContentsMargins(0, 10, 0, 10)
         
-        inp_w = QLineEdit(style_dict.get('width', '')); inp_w.setPlaceholderText(f"E.g.: {real_w}, 100%, or auto")
-        inp_h = QLineEdit(style_dict.get('height', '')); inp_h.setPlaceholderText("VD: auto")
+        inp_w = QLineEdit(style_dict.get('width', '')); inp_w.setPlaceholderText(f"e.g., {real_w}, 100%, or auto")
+        inp_h = QLineEdit(style_dict.get('height', '')); inp_h.setPlaceholderText("e.g., auto")
 
         inp_ov = QComboBox()
-        inp_ov.addItems(["(Default) Free", "Auto-generate scrollbar when long (auto)", "Hide overflowing content (hidden)"])
+        inp_ov.addItems(["(Default) Free", "Auto scrollbar when overflowing (auto)", "Hide overflowing content (hidden)"])
         old_ov = style_dict.get('overflow', '')
         if old_ov == 'auto': inp_ov.setCurrentIndex(1)
         elif old_ov == 'hidden': inp_ov.setCurrentIndex(2)
 
         inp_flex = QComboBox()
         inp_flex.addItems([
-            "(Default per original code)", 
-            "Stack elements vertically (Column - Prevents text overlap)", 
+            "(Default by original code)", 
+            "Stack elements vertically (Column - Prevents overlap)", 
             "Arrange elements horizontally (Row)",
             "Center all content (Center)"
         ])
@@ -2935,13 +3164,13 @@ class UniversalHTMLEditor(QMainWindow):
         elif old_display == 'flex': inp_flex.setCurrentIndex(3)
 
         form.addRow("Width:", inp_w)
-        form.addRow("Cao (Height):", inp_h)
-        form.addRow("Handle long content:", inp_ov)
-        form.addRow("Arrange child elements:", inp_flex)
+        form.addRow("Height:", inp_h)
+        form.addRow("Overflow behavior:", inp_ov)
+        form.addRow("Child layout:", inp_flex)
         
         layout.addLayout(form)
         
-        btn_apply = QPushButton("✔️ Apply Settings")
+        btn_apply = QPushButton("✔️ Apply Dimensions")
         btn_apply.clicked.connect(dialog.accept)
         layout.addWidget(btn_apply)
         
@@ -2964,7 +3193,7 @@ class UniversalHTMLEditor(QMainWindow):
             if flex_idx == 1:
                 style_dict['display'] = 'flex'
                 style_dict['flex-direction'] = 'column'
-                style_dict['gap'] = '10px' # Create even spacing between child elements, absolutely prevent overlap
+                style_dict['gap'] = '10px'
             elif flex_idx == 2:
                 style_dict['display'] = 'flex'
                 style_dict['flex-direction'] = 'row'
@@ -2985,28 +3214,28 @@ class UniversalHTMLEditor(QMainWindow):
             
             self.on_item_clicked(item, 0)
             self.apply_changes()
-            self.statusBar().showMessage(f"📐 Structure of tag <{t.name}> adjusted!", 3000)
+            self.statusBar().showMessage(f"📐 Refined structure for <{t.name}>!", 3000)
     
     def toggle_image_fit(self, item, t):
         self.save_state_for_undo()
         st = str(t.get('style', ''))
         if 'object-fit: cover' in st or 'object-fit:cover' in st:
             new_st = st.replace('object-fit: cover', 'object-fit: contain').replace('object-fit:cover', 'object-fit:contain')
-            msg = "Switched to: 🖼️ SHOW FULL IMAGE (Not cropped)"
+            msg = "Switched to: 🖼️ FULL IMAGE DISPLAY (Contain)"
         else:
             if 'object-fit' in st:
                 new_st = st.replace('object-fit: contain', 'object-fit: cover').replace('object-fit:contain', 'object-fit:cover')
             else:
                 new_st = st + ("; object-fit: cover;" if st else "object-fit: cover;")
-            msg = "Switched to: ✂️ FILL & CROP TO FIT (Cover)"
+            msg = "Switched to: ✂️ FILL & CROP (Cover)"
         
         t['style'] = new_st
         self.on_item_clicked(item, 0)
         self.apply_changes()
         self.statusBar().showMessage(msg, 5000)
-   
+    
     def quick_change_bg_color(self, item, t):
-        c = QColorDialog.getColor(QColor(), self, "Select Card Background Color", QColorDialog.ColorDialogOption.ShowAlphaChannel)
+        c = QColorDialog.getColor(QColor(), self, "Select Element Background Color", QColorDialog.ColorDialogOption.ShowAlphaChannel)
         if c.isValid():
             self.save_state_for_undo()
             rgba = f"rgba({c.red()}, {c.green()}, {c.blue()}, {c.alpha()/255.0:g})"
@@ -3025,7 +3254,7 @@ class UniversalHTMLEditor(QMainWindow):
             
             self.on_item_clicked(item, 0) 
             self.apply_changes()
-            self.statusBar().showMessage(f"🎨 Background of tag <{t.name}> changed!", 3000)
+            self.statusBar().showMessage(f"🎨 Changed background color of <{t.name}>!", 3000)
 
     def convert_to_link(self):
         if not self.current_node: return
@@ -3037,7 +3266,7 @@ class UniversalHTMLEditor(QMainWindow):
         if t.name == 'button':
             t.name = 'a'
             t['href'] = '#'
-            msg = "🪄 Button (button) magically transformed into a Link (a)!"
+            msg = "🪄 Converted Button to Link (a)!"
             target_node = t
             update_node = t
 
@@ -3045,7 +3274,7 @@ class UniversalHTMLEditor(QMainWindow):
             new_a = self.soup.new_tag('a', href='#')
             new_a['style'] = "text-decoration: none; color: inherit; display: inline-block;"
             t.wrap(new_a)
-            msg = f"🪄 Protective Link wrapped around tag <{t.name}>!"
+            msg = f"🪄 Wrapped a Link around tag <{t.name}>!"
             target_node = new_a
             update_node = parent_node 
             
@@ -3079,239 +3308,96 @@ class UniversalHTMLEditor(QMainWindow):
             
         self.statusBar().showMessage(msg, 5000)
 
-    def insert_floating_image(self, item, t):
+    def set_background_image(self, item, t):
+        p, _ = QFileDialog.getOpenFileName(self, "Select Background Image", "", "Images (*.png *.jpg *.jpeg *.gif *.webp)")
+        if not p: return
+
+        base_dir = os.path.dirname(os.path.abspath(self.current_file_path)) if self.current_file_path else BASE_DIR
+        try:
+            target_path = os.path.relpath(p, base_dir).replace('\\', '/')
+        except ValueError:
+            target_path = "file:///" + p.replace('\\', '/')
+
+        from PySide6.QtWidgets import QInputDialog
+        options = [
+            "1. 🌙 Dark Overlay 60% (Highlights WHITE text)",
+            "2. 🌘 Dark Overlay 80% (Extra dark, best for bright images)",
+            "3. 🌞 Light Overlay 70% (Highlights BLACK text)",
+            "4. 🌌 Gradient Overlay (Darkens towards bottom, great for banners)",
+            "5. ❌ No overlay (Original image)"
+        ]
+        overlay_choice, ok = QInputDialog.getItem(self, "Background Image Processing", "Overly detailed images can make text hard to read.\nSelect an overlay to apply over the image:", options, 0, False)
+        
+        if not ok: return
+        
         self.save_state_for_undo()
+        st = str(t.get('style', '')).strip()
+        import re
 
-        if t.name not in ['body', 'html']:
-            parent_st = str(t.get('style', ''))
-            if 'position' not in parent_st:
-                t['style'] = parent_st.strip(';') + ("; " if parent_st else "") + "position: relative;"
-        
-        new_img = self.soup.new_tag('img', src='https://via.placeholder.com/150x100?text=Keo+Tha+Toi')
+        st = re.sub(r'background-image:\s*[^;]+;?', '', st)
+        st = re.sub(r'background-size:\s*[^;]+;?', '', st)
+        st = re.sub(r'background-position:\s*[^;]+;?', '', st)
 
-        new_img['class'] = 'free-floating-element'
+        bg_url = f"url('{target_path}')"
 
-        new_img['style'] = "position: absolute; z-index: 9999; top: 10px; left: 10px; width: 150px; height: auto; object-fit: contain; cursor: move; border: 2px dashed #ff9800; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); background: rgba(255,255,255,0.8);"
-        
-        t.append(new_img)
-        
-        self.refresh_tree()
-        self.update_preview()
-        
-        new_id = str(id(new_img))
-        if new_id in self.node_map: self.select_tree_item_by_id(new_id)
-        self.statusBar().showMessage("🛸 Floating Image created! Use the mouse to DRAG it to the position you want, then Right-click -> Select 'Quick image swap'.", 7000)
-
-    def quick_replace_image(self, item, t):
-        p, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Images (*.png *.jpg *.jpeg *.gif *.svg *.webp)")
-        if p:
-            self.save_state_for_undo()
-            old_src = str(t.get('src', '')).strip()
-
-            try:
-                base_dir = os.path.dirname(os.path.abspath(self.current_file_path))
-                target_path = os.path.relpath(p, base_dir).replace('\\', '/')
-            except (ValueError, TypeError):
-                target_path = "file:///" + p.replace('\\', '/')
-                
-            t['src'] = target_path
-            self.inp_src.setText(target_path)
-            
-            for attr in list(t.attrs.keys()):
-                if attr == 'src': continue
-                val = str(t[attr])
-                if old_src and old_src in val:
-                    t[attr] = val.replace(old_src, target_path)
-                elif attr == 'onerror' and "this.src=" in val.replace(" ", ""):
-                    t[attr] = f"this.src='{target_path}'"
-            
-            st = str(t.get('style', '')).strip()
-            import re
-
-            if 'free-floating-element' in t.get('class', []):
-                st = re.sub(r'border:\s*[^;]+;?', '', st)
-                st = re.sub(r'background:\s*[^;]+;?', '', st)
-                st = re.sub(r'box-shadow:\s*[^;]+;?', '', st)
-
-            st = re.sub(r'height:\s*auto;?', '', st) 
-            
-            if 'object-fit' not in st: st = st.strip(';') + ("; " if st else "") + "object-fit: contain;"
-            if 'max-width' not in st: st = st.strip(';') + ("; " if st else "") + "max-width: 100%;"
-            t['style'] = st.strip('; ')
-                    
-            item.setText(0, self.format_node_title(t))
-            
-            # --- ANTI SPA-JUMP TECHNOLOGY ---
-            eid = t.get('data-editor-id')
-            if eid and t.name not in ['body', 'html']:
-                import base64
-                b64_html = base64.b64encode(str(t).encode('utf-8')).decode('utf-8')
-                js = f"""
-                (function(){{
-                    var el = document.querySelector('[data-editor-id="{eid}"]');
-                    if(el) {{
-                        var temp = document.createElement('div');
-                        temp.innerHTML = decodeURIComponent(escape(window.atob('{b64_html}')));
-                        var newEl = temp.firstElementChild;
-                        if(newEl) {{
-                            el.replaceWith(newEl);
-                            setTimeout(() => newEl.classList.add('editor-highlight'), 50);
-                        }}
-                    }}
-                }})();
-                """
-                self.web_view.page().runJavaScript(js)
-            else:
-                self.update_preview()
-                
-            self.statusBar().showMessage("🖼️ Image changed successfully!", 4000)
-
-    def pin_floating_image(self, item, t, position):
-        self.save_state_for_undo()
-        eid = t.get('data-editor-id')
-        if not eid: return
-
-        js = f"""
-        (function(){{
-            var img = document.querySelector('[data-editor-id="{eid}"]');
-            if(!img) return "0|";
-            
-            var imgRect = img.getBoundingClientRect();
-            var pos = "{position}";
-            
-            // 1. FIND THE EXACT HOST ELEMENT: Cast an X-ray from the EXACT CENTER of the image so it never drifts off target
-            var cx = imgRect.left + imgRect.width / 2;
-            var cy = imgRect.top + imgRect.height / 2;
-            
-            img.style.display = 'none';
-            var underEls = document.elementsFromPoint(cx, cy);
-            img.style.display = 'block';
-            
-            var underEl = null;
-            // Skip tags that only contain text, prioritize snapping to Block tags (Div, Nav, Section, Header...)
-            var avoidTags = ['BODY', 'HTML', 'MAIN', 'P', 'SPAN', 'B', 'I', 'A', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'IMG', 'BUTTON', 'LI', 'UL', 'OL'];
-            
-            for(var i=0; i<underEls.length; i++) {{
-                var el = underEls[i];
-                if(el.id === 'mini-app-editor-style' || el.id === 'mini-app-editor-script') continue;
-                if(!avoidTags.includes(el.tagName)) {{
-                    underEl = el;
-                    break;
-                }}
-            }}
-            
-            // Step back out to find a wrapper tag in case it accidentally hit a text cluster
-            if(!underEl && underEls.length > 0) {{ 
-                var directHit = underEls[0];
-                while(directHit && directHit.parentElement && avoidTags.includes(directHit.tagName)) {{
-                    directHit = directHit.parentElement;
-                }}
-                underEl = directHit || document.body;
-            }}
-            if(!underEl) underEl = document.body;
-            
-            // 2. INJECT ANESTHETIC (POSITION: RELATIVE) INTO THE HOST TO SERVE AS THE ANCHOR POINT
-            var compStyle = window.getComputedStyle(underEl);
-            if (compStyle.position === 'static') {{
-                underEl.style.setProperty('position', 'relative', 'important');
-            }}
-            
-            // 3. RELOCATE (MOVE THE IMAGE'S DOM NODE INTO THE NEWLY FOUND HOST)
-            if(img.parentElement !== underEl) {{
-                underEl.appendChild(img);
-            }}
-            
-            // 4. CALCULATE SPACING COMPENSATION (INCLUDING PROTECTIVE BORDER THICKNESS)
-            var pRect = underEl.getBoundingClientRect();
-            var bTop = parseFloat(compStyle.borderTopWidth) || 0;
-            var bLeft = parseFloat(compStyle.borderLeftWidth) || 0;
-            var bRight = parseFloat(compStyle.borderRightWidth) || 0;
-            var bBottom = parseFloat(compStyle.borderBottomWidth) || 0;
-            
-            // Host's inner margin coordinates (Padding box)
-            var pInnerTop = pRect.top + bTop;
-            var pInnerLeft = pRect.left + bLeft;
-            var pInnerRight = pRect.right - bRight;
-            var pInnerBottom = pRect.bottom - bBottom;
-            
-            img.style.removeProperty('left');
-            img.style.removeProperty('top');
-            img.style.removeProperty('right');
-            img.style.removeProperty('bottom');
-            img.style.removeProperty('transform');
-            img.style.removeProperty('margin');
-            
-            // Lock the exact pixel value, whether negative or positive
-            if (pos === 'top-left') {{ 
-                img.style.top = (imgRect.top - pInnerTop) + 'px'; 
-                img.style.left = (imgRect.left - pInnerLeft) + 'px'; 
-            }}
-            else if (pos === 'top-right') {{ 
-                img.style.top = (imgRect.top - pInnerTop) + 'px'; 
-                img.style.right = (pInnerRight - imgRect.right) + 'px'; 
-            }}
-            else if (pos === 'bottom-left') {{ 
-                img.style.bottom = (pInnerBottom - imgRect.bottom) + 'px'; 
-                img.style.left = (imgRect.left - pInnerLeft) + 'px'; 
-            }}
-            else if (pos === 'bottom-right') {{ 
-                img.style.bottom = (pInnerBottom - imgRect.bottom) + 'px'; 
-                img.style.right = (pInnerRight - imgRect.right) + 'px'; 
-            }}
-            else if (pos === 'center') {{ 
-                img.style.top = '50%'; 
-                img.style.left = '50%'; 
-                img.style.transform = 'translate(-50%, -50%)'; 
-            }}
-            
-            // Flash a border to indicate
-            var oldBoxShadow = img.style.boxShadow;
-            img.style.boxShadow = '0 0 20px #00ff00, 0 0 40px #00ff00';
-            setTimeout(() => {{ img.style.boxShadow = oldBoxShadow; }}, 800);
-            
-            var targetName = underEl.tagName.toLowerCase() + (underEl.className ? '.' + underEl.className.split(' ')[0] : '');
-            return "1|" + targetName;
-        }})();
-        """
-        
-        self.web_view.page().runJavaScript(js, 0, lambda r: self._post_pin_floating_image(r, position, eid))
-
-    def _post_pin_floating_image(self, res, position, eid):
-        if isinstance(res, str) and res.startswith("1|"):
-            target_name = res.split("|")[1]
-            self.web_view.page().runJavaScript("document.documentElement.outerHTML", 0, lambda html: self._sync_and_reselect(html, eid, position, target_name))
+        if "Dark Overlay 60%" in overlay_choice:
+            bg_image = f"linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), {bg_url}"
+        elif "Dark Overlay 80%" in overlay_choice:
+            bg_image = f"linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), {bg_url}"
+        elif "Light Overlay" in overlay_choice:
+            bg_image = f"linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), {bg_url}"
+        elif "Gradient" in overlay_choice:
+            bg_image = f"linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 100%), {bg_url}"
         else:
-            self.statusBar().showMessage("⚠️ Error: Image not found to anchor.", 3000)
+            bg_image = bg_url
 
-    def _sync_and_reselect(self, html, eid, position, target_name):
-        self.process_synced_html(html)
-        if eid in self.node_map:
-            self.select_tree_item_by_id(eid)
+        new_rules = f"background-image: {bg_image}; background-size: cover; background-position: center;"
+        t['style'] = st.strip('; ') + ("; " if st.strip() else "") + new_rules
 
-        if target_name == "body":
-            self.statusBar().showMessage(f"⚠️ WARNING: The image is sticking out too far, so it is anchoring to the outermost screen edge. Try dragging it a bit further inward, then Anchor again!", 8000)
-        else:
-            self.statusBar().showMessage(f"🧲 MAGNET TECHNOLOGY: Image snapped into Block [{target_name}] & pixel-locked to the {position.upper()} corner!", 8000)
+        self.on_item_clicked(item, 0)
+        self.apply_changes()
+        self.statusBar().showMessage(f"✅ Background image set with mode: {overlay_choice.split(' ')[1]}", 6000)
 
     def lock_floating_image(self, item, t):
         self.save_state_for_undo()
 
-        cls = t.get('class', [])
-        if isinstance(cls, str): cls = [cls]
-        if 'free-floating-element' in cls:
-            cls.remove('free-floating-element')
-            t['class'] = cls
-            if not t['class']: del t['class']
+        wrapper = t if 'image-wrapper-free' in t.get('class', []) else t.parent
+        
+        if wrapper and 'image-wrapper-free' in wrapper.get('class', []):
+            st = str(wrapper.get('style', '')).strip()
+            import re
 
+            st = re.sub(r'resize:\s*both;?', 'resize: none;', st)
+            st = re.sub(r'overflow:\s*hidden;?', 'overflow: visible;', st)
+            
+            wrapper['style'] = st.strip('; ')
+
+            self.on_item_clicked(item, 0)
+            self.apply_changes()
+            
+            self.statusBar().showMessage("🔒 Locked Image Frame (Disabled bottom-right resize handle).", 5000)
+        else:
+            self.statusBar().showMessage("⚠️ Please select a Free Floating Image Frame to lock.", 3000)
+
+    def toggle_resize_block(self, item, t):
+        self.save_state_for_undo()
         st = str(t.get('style', '')).strip()
         import re
-        st = re.sub(r'cursor:\s*move;?', '', st)
-        t['style'] = st.replace('  ', ' ').strip('; ')
-        
+
+        if 'resize:' in st and 'both' in st:
+            st = re.sub(r'resize:\s*both;?', 'resize: none;', st)
+            st = re.sub(r'overflow:\s*auto;?', 'overflow: visible;', st)
+            st = re.sub(r'overflow:\s*hidden;?', 'overflow: visible;', st)
+            msg = "🔒 Resizing handle DISABLED for this block."
+        else:
+            st = re.sub(r'resize:\s*none;?', '', st)
+            st = st.strip(';') + ("; " if st else "") + "resize: both; overflow: hidden;"
+            msg = "📐 Resizing handle ENABLED! Resize from the bottom-right corner."
+
+        t['style'] = st.strip('; ')
         self.on_item_clicked(item, 0)
         self.apply_changes()
-        
-        self.statusBar().showMessage("🔒 Current position locked! The floating Image's coordinates are now fully fixed.", 5000)
+        self.statusBar().showMessage(msg, 5000)
 
     def reverse_children(self, item, t):
         self.save_state_for_undo()
@@ -3344,7 +3430,7 @@ class UniversalHTMLEditor(QMainWindow):
         else:
             self.update_preview()
             
-        self.statusBar().showMessage("🔄 Child element order reversed!", 3000)
+        self.statusBar().showMessage("🔄 Reversed order of child elements!", 3000)
        
     def quick_duplicate(self, item, t):
         self.save_state_for_undo()
@@ -3432,7 +3518,7 @@ class UniversalHTMLEditor(QMainWindow):
             self.update_preview()
             
             if len(companions) > 0:
-                self.statusBar().showMessage(f"👯 Macro Successful: Duplicated the source Block + {len(companions)} linked satellite Blocks!", 5000)
+                self.statusBar().showMessage(f"👯 Macro Complete: Duplicated main block + {len(companions)} linked satellite blocks!", 5000)
             else:
                 self.statusBar().showMessage("👯 Duplicated independently.", 5000)
                 
@@ -3445,39 +3531,45 @@ class UniversalHTMLEditor(QMainWindow):
             return
 
         base_dir = os.path.dirname(os.path.abspath(self.current_file_path))
-
-        p, _ = QFileDialog.getOpenFileName(self, "Select Free Image", "", "Images (*.png *.jpg *.jpeg *.gif *.svg *.webp)")
+        p, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Images (*.png *.jpg *.jpeg *.gif *.svg *.webp)")
         if not p: return
-
+        
         try:
             target_path = os.path.relpath(p, base_dir).replace('\\', '/')
         except ValueError:
             target_path = "file:///" + p.replace('\\', '/')
             
         self.save_state_for_undo()
+
+        wrapper = self.soup.new_tag('div')
+        wrapper['class'] = 'image-wrapper-free'
+        wrapper_style = "position: relative; display: inline-block; width: 350px; height: 250px; resize: both; overflow: hidden; border-radius: 8px; max-width: 100%; min-width: 50px; min-height: 50px; box-sizing: border-box; transition: none !important;"
         
         new_img = self.soup.new_tag('img', src=target_path)
-        new_img['style'] = "max-width: 100%; height: auto; object-fit: contain;"
+        new_img['style'] = "width: 100%; height: 100%; object-fit: cover; display: block;"
+        wrapper.append(new_img)
 
         if position in ["above", "below"]:
-            new_img['style'] += " display: block; margin: 15px auto;"
-            if position == "above": t.insert_before(new_img)
-            else: t.insert_after(new_img)
+            wrapper['style'] = wrapper_style + " margin: 15px 0;"
+            if position == "above": t.insert_before(wrapper)
+            else: t.insert_after(wrapper)
             
         elif position in ["left", "right"]:
             main_wrapper = self.soup.new_tag('div')
             main_wrapper['class'] = "grid-wrap"
-            main_wrapper['style'] = "display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; align-items: center;"
-
+            main_wrapper['style'] = "display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; align-items: start;"
+            
             t_wrapper = self.soup.new_tag('div')
             t_wrapper['class'] = "grid-item-text"
             t_wrapper['style'] = "min-width: 0; width: 100%;"
-
+            
             img_wrapper = self.soup.new_tag('div')
             img_wrapper['class'] = "grid-item-img"
             img_wrapper['style'] = "min-width: 0; width: 100%; display: flex; justify-content: center;"
-            img_wrapper.append(new_img)
 
+            wrapper['style'] = "position: relative; display: inline-block; width: 100%; height: 250px; resize: both; overflow: hidden; border-radius: 8px; max-width: 100%; min-width: 50px; min-height: 50px; box-sizing: border-box; transition: none !important;"
+            img_wrapper.append(wrapper)
+            
             t.insert_before(main_wrapper)
             t_extracted = t.extract()
             t_wrapper.append(t_extracted)
@@ -3492,20 +3584,19 @@ class UniversalHTMLEditor(QMainWindow):
         self.refresh_tree()
         self.update_preview()
         
-        new_id = str(id(new_img))
+        new_id = str(id(wrapper))
         if new_id in self.node_map: self.select_tree_item_by_id(new_id)
-        self.statusBar().showMessage(f"✅ Image safely inserted (Allowed to select outside the working folder)!", 4000)
+        self.statusBar().showMessage("✅ Image inserted! Drag the bottom-right handle to adjust size easily.", 6000)
 
     def insert_new_image_inside(self, item, t, position):
         if not self.current_file_path:
-            QMessageBox.warning(self, "Error", "Please open a file.")
+            QMessageBox.warning(self, "Error", "Please open a file first.")
             return
 
         base_dir = os.path.dirname(os.path.abspath(self.current_file_path))
-
-        p, _ = QFileDialog.getOpenFileName(self, "Select Free Image", "", "Images (*.png *.jpg *.jpeg *.gif *.svg *.webp)")
+        p, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Images (*.png *.jpg *.jpeg *.gif *.svg *.webp)")
         if not p: return
-
+        
         try:
             target_path = os.path.relpath(p, base_dir).replace('\\', '/')
         except ValueError:
@@ -3513,22 +3604,27 @@ class UniversalHTMLEditor(QMainWindow):
             
         self.save_state_for_undo()
         
+        wrapper = self.soup.new_tag('div')
+        wrapper['class'] = 'image-wrapper-free'
+        
         new_img = self.soup.new_tag('img', src=target_path)
+        new_img['style'] = "width: 100%; height: 100%; object-fit: cover; display: block;"
+        wrapper.append(new_img)
 
-        base_style = "width: 33.33%; max-width: 100%; height: auto; object-fit: contain; flex-shrink: 0; min-width: 0; "
+        base_style = "position: relative; resize: both; overflow: hidden; border-radius: 8px; max-width: 100%; min-width: 50px; min-height: 50px; box-sizing: border-box; transition: none !important; "
         
         if position == "left":
-            new_img['style'] = base_style + "float: left; margin: 0 15px 15px 0;"
-            t.insert(0, new_img) 
+            wrapper['style'] = base_style + "width: 250px; height: 180px; float: left; margin: 0 15px 15px 0;"
+            t.insert(0, wrapper) 
         elif position == "right":
-            new_img['style'] = base_style + "float: right; margin: 0 0 15px 15px;"
-            t.insert(0, new_img) 
+            wrapper['style'] = base_style + "width: 250px; height: 180px; float: right; margin: 0 0 15px 15px;"
+            t.insert(0, wrapper) 
         elif position == "top":
-            new_img['style'] = base_style + "display: block; margin: 0 auto 15px auto;"
-            t.insert(0, new_img) 
+            wrapper['style'] = base_style + "width: 100%; height: 250px; display: block; margin: 0 auto 15px auto;"
+            t.insert(0, wrapper) 
         elif position == "bottom":
-            new_img['style'] = base_style + "display: block; margin: 15px auto 0 auto;"
-            t.append(new_img) 
+            wrapper['style'] = base_style + "width: 100%; height: 250px; display: block; margin: 15px auto 0 auto;"
+            t.append(wrapper) 
 
         if position in ["left", "right"]:
             st = str(t.get('style', '')).strip()
@@ -3538,17 +3634,16 @@ class UniversalHTMLEditor(QMainWindow):
         self.refresh_tree()
         self.update_preview()
         
-        new_id = str(id(new_img))
+        new_id = str(id(wrapper))
         if new_id in self.node_map: self.select_tree_item_by_id(new_id)
-        self.statusBar().showMessage(f"✅ Free image inserted INSIDE the tag (Standard wrap-around Magazine style)!", 4000)
+        self.statusBar().showMessage("✅ Inserted inline image! Drag the bottom-right handle to scale.", 6000)
 
     def insert_component_relative(self, item, t, position, comp_type):
         self.save_state_for_undo()
         
         html_str = ''
         if comp_type == "table":
-
-            html_str = '<div style="overflow-x:auto;padding:10px;width:100%;"><table style="width:100%;border-collapse:collapse;margin:15px 0;font-family:sans-serif;color:inherit;"><tr style="background:#007acc;color:white;text-align:left;"><th style="padding:12px 15px;">ID</th><th style="padding:12px 15px;">Full Name</th><th style="padding:12px 15px;">Status</th></tr><tr style="border-bottom: 1px solid rgba(150,150,150,0.3);"><td style="padding:12px 15px;">#01</td><td style="padding:12px 15px;">John Smith</td><td style="padding:12px 15px;"><span style="background:#28a745;color:white;padding:4px 8px;border-radius:12px;font-size:12px;">Active</span></td></tr></table></div>' 
+            html_str = '<div style="overflow-x:auto;padding:10px;width:100%;"><table style="width:100%;border-collapse:collapse;margin:15px 0;font-family:sans-serif;color:inherit;"><tr style="background:#007acc;color:white;text-align:left;"><th style="padding:12px 15px;">ID</th><th style="padding:12px 15px;">Full Name</th><th style="padding:12px 15px;">Status</th></tr><tr style="border-bottom: 1px solid rgba(150,150,150,0.3);"><td style="padding:12px 15px;">#01</td><td style="padding:12px 15px;">John Doe</td><td style="padding:12px 15px;"><span style="background:#28a745;color:white;padding:4px 8px;border-radius:12px;font-size:12px;">Active</span></td></tr></table></div>'
             
         new_soup = self.parse_html(html_str)
         els = [e for e in (new_soup.body or new_soup).children if isinstance(e, Tag)]
@@ -3589,12 +3684,11 @@ class UniversalHTMLEditor(QMainWindow):
 
         new_id = str(id(new_el))
         if new_id in self.node_map: self.select_tree_item_by_id(new_id)
-        self.statusBar().showMessage(f"✅ Table inserted successfully at position ({position}), absolutely safe!", 4000)
+        self.statusBar().showMessage(f"✅ Inserted Table safely at position ({position})!", 4000)
 
     def add_blank_layer(self, item, t, mode):
-
         if mode == "inside" and hasattr(self, 'check_locked') and self.check_locked(t):
-            QMessageBox.warning(self, "CSS Protection", "This block is currently 🔒 LOCKED.\nThe Tool refuses to nest a tag inside it to avoid breaking the interface!\n\nPlease choose the 'Sibling' insert mode instead.")
+            QMessageBox.warning(self, "CSS Protection", "This block is currently 🔒 LOCKED.\nCannot insert child elements inside to prevent layout breakage!\n\nPlease use 'Sibling' insertion mode instead.")
             return
 
         self.save_state_for_undo()
@@ -3602,19 +3696,19 @@ class UniversalHTMLEditor(QMainWindow):
 
         blank_div['class'] = "layer-wrapper"
         blank_div['style'] = "min-height: 100px; padding: 20px; background: rgba(0,0,0,0.03); border: 2px dashed #007acc; width: 100%; box-sizing: border-box; margin-bottom: 15px;"
-        blank_div.string = "New content layer..."
+        blank_div.string = "New layer content..."
 
         if mode == "inside":
             t.append(blank_div)
-            msg = "📥 A Blank Layer has been nested INSIDE this object!"
+            msg = "📥 Added 1 blank layer INSIDE this element!"
         else:
             if t.name in ['body', 'html']:
-                QMessageBox.warning(self, "Logic Error", "The Body tag is the top level, cannot insert as a sibling. Automatically switched to inserting inside (Child) instead!")
+                QMessageBox.warning(self, "Logic Warning", "The Body tag is top-level and cannot have siblings. Automatically switched to inside (Child) insertion!")
                 t.append(blank_div)
-                msg = "📥 A Blank Layer has been nested INSIDE the Body tag."
+                msg = "📥 Added 1 blank layer INSIDE the Body tag."
             else:
                 t.insert_after(blank_div)
-                msg = "📌 A Blank Layer has been placed as a SIBLING of this object!"
+                msg = "📌 Added 1 blank layer SIBLING to this element!"
 
         self.refresh_tree()
         self.update_preview()
@@ -3626,150 +3720,133 @@ class UniversalHTMLEditor(QMainWindow):
     def add_sub_item(self, item, t):
         from PySide6.QtWidgets import QMessageBox
         if hasattr(self, 'check_locked') and self.check_locked(t):
-            QMessageBox.warning(self, "CSS Protection", "This object is currently 🔒 LOCKED.\nCannot nest a Sub-item inside it!")
+            QMessageBox.warning(self, "CSS Protection", "This element is 🔒 LOCKED.\nCannot insert Sub-menu items inside!")
             return
 
         if t.find_parent('nav') or 'pagination' in t.get('class', []) or t.find_parent(class_='pagination-wrapper'):
-            QMessageBox.warning(self, "Structure Protection", "The 'Add Sub-item' (Dropdown) feature is only supported for vertical Sidebar Menus.\nCannot be applied to horizontal Navigation or Pagination, as it will completely break the Layout!")
+            QMessageBox.warning(self, "Structure Protection", "The 'Add Sub-menu Item' feature is only supported for vertical Sidebar menus.\nApplying it to horizontal navigation or pagination will break the layout!")
             return
 
         self.save_state_for_undo()
         import random
 
-        curr = t
-        target_trigger = None
+        target = t
+        if target.name == 'li' and target.find('a'): target = target.find('a')
+
         target_folder = None
+        is_creating_new_folder = False
 
-        while curr and curr.name not in ['body', 'html', 'main', 'aside']:
-            classes = curr.get('class', [])
-            if isinstance(classes, str): classes = [classes]
-
-            if 'menu-con' in classes:
-                target_folder = curr
-                prev = curr.find_previous_sibling(True) # Get any tag immediately above it
-                if prev: target_trigger = prev
-                break
-
-            if curr.name in ['a', 'button'] or curr.get('data-menu') or any('nut-' in c for c in classes):
-                target_trigger = curr
-                break
-
-            if curr.name in ['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'p', 'span']:
-                # Skip large layout blocks to avoid false detection
-                if not any(k in c for c in classes for k in ['menu-group', 'sidebar', 'vung-noi-dung', 'container']):
-                    target_trigger = curr
-                    break
-                
-            curr = curr.parent
-
-        if not target_trigger and not target_folder:
-            QMessageBox.warning(self, "Selection Error", "Please click on a category (a tag, div...) on the left to create a Sub-item!")
-            return
-
-        if target_trigger and not target_folder:
-            menu_id = target_trigger.get('data-menu')
-            if menu_id:
-                target_folder = self.soup.find(id=menu_id)
+        parent_folder = target.find_parent(class_='menu-con')
+        if parent_folder:
+            target_folder = parent_folder
+        elif 'menu-con' in target.get('class', []):
+            target_folder = target
+        else:
+            menu_id = target.get('data-menu')
+            if menu_id: target_folder = self.soup.find(id=menu_id)
             if not target_folder:
+                nxt = target.find_next_sibling()
+                if nxt and 'menu-con' in nxt.get('class', []): target_folder = nxt
 
-                nxt = target_trigger.find_next_sibling('div')
-                if nxt and 'menu-con' in nxt.get('class', []):
-                    target_folder = nxt
+            if not target_folder:
+                is_creating_new_folder = True
 
-        is_first_time = False if target_folder else True
-        
+        new_page_id = f"trang-con-{random.randint(10000, 99999)}"
+        js_tab_switch = "var tId=this.getAttribute('data-trang'); document.querySelectorAll('.trang-noi-dung').forEach(function(el){el.classList.remove('trang-dang-hien-thi'); el.style.display='none';}); var target=document.getElementById(tId); if(target){target.classList.add('trang-dang-hien-thi'); target.style.display='block';} document.querySelectorAll('.nut-chuyen-trang').forEach(function(btn){btn.classList.remove('menu-dang-chon'); if(btn.getAttribute('data-trang')===tId) btn.classList.add('menu-dang-chon');});"
         safe_a_style = "display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; margin-bottom: 5px; color: #a0aec0; text-decoration: none; border-radius: 8px; transition: 0.2s; font-size: 13.5px;"
         
-        js_tab_switch = "var tId=this.getAttribute('data-trang'); document.querySelectorAll('.trang-noi-dung').forEach(function(el){el.classList.remove('trang-dang-hien-thi'); el.style.display='none';}); var target=document.getElementById(tId); if(target){target.classList.add('trang-dang-hien-thi'); target.style.display='block';} document.querySelectorAll('.nut-chuyen-trang').forEach(function(btn){btn.classList.remove('menu-dang-chon'); if(btn.getAttribute('data-trang')===tId) btn.classList.add('menu-dang-chon');});"
+        parent_name = target.get_text(strip=True).replace('▼', '').strip() if target else "Category"
 
-        parent_name = target_trigger.get_text(strip=True).replace('▼', '').strip() if target_trigger else "Category"
-
-        if is_first_time:
-
+        if is_creating_new_folder:
             menu_id = f"menu-con-{random.randint(1000, 9999)}"
             
             target_folder = self.soup.new_tag('div', id=menu_id)
             target_folder['class'] = "menu-con mo-ra"
             target_folder['style'] = "display: block; margin-left: 15px; padding-left: 10px; border-left: 1px solid #2a3441; margin-bottom: 10px;"
-            target_trigger.insert_after(target_folder)
+            target.insert_after(target_folder)
 
-            old_data_trang = target_trigger.get('data-trang')
-            if 'data-trang' in target_trigger.attrs:
-                del target_trigger['data-trang']
+            old_data_trang = target.get('data-trang')
+            if 'data-trang' in target.attrs: del target['data-trang']
 
-            classes = target_trigger.get('class', [])
+            classes = target.get('class', [])
             if isinstance(classes, str): classes = [classes]
             classes = [c for c in classes if c not in ['nut-chuyen-trang', 'menu-dang-chon']]
             if 'nut-mo-menu-con' not in classes: classes.append('nut-mo-menu-con')
             if 'xo-menu' not in classes: classes.append('xo-menu')
-            target_trigger['class'] = classes
-            target_trigger['data-menu'] = menu_id
+            target['class'] = classes
+            target['data-menu'] = menu_id
             
-            st = str(target_trigger.get('style', ''))
+            st = str(target.get('style', ''))
             if 'cursor: pointer' not in st and 'cursor:pointer' not in st:
-                target_trigger['style'] = st.strip(';') + ("; " if st else "") + "cursor: pointer;"
+                target['style'] = st.strip(';') + ("; " if st else "") + "cursor: pointer;"
             
-            target_trigger['onclick'] = f"var m=document.getElementById('{menu_id}'); if(m.classList.contains('mo-ra')){{ m.classList.remove('mo-ra'); m.style.display='none'; this.classList.remove('xo-menu'); }} else {{ m.classList.add('mo-ra'); m.style.display='block'; this.classList.add('xo-menu'); }}"
+            target['onclick'] = f"var m=document.getElementById('{menu_id}'); if(m.classList.contains('mo-ra')){{ m.classList.remove('mo-ra'); m.style.display='none'; this.classList.remove('xo-menu'); }} else {{ m.classList.add('mo-ra'); m.style.display='block'; this.classList.add('xo-menu'); }}"
             
-            if not target_trigger.find('span', class_='mui-ten'):
-                target_trigger.clear()
+            if not target.find('span', class_='mui-ten'):
+                target.clear()
                 span_text = self.soup.new_tag('span')
                 span_text.string = parent_name
-                target_trigger.append(span_text)
+                target.append(span_text)
                 
                 icon = self.soup.new_tag('span')
                 icon['class'] = 'mui-ten'
                 icon['style'] = "font-size: 10px; transition: 0.2s;"
                 icon.string = "▼"
-                target_trigger.append(" ")
-                target_trigger.append(icon)
+                target.append(" ")
+                target.append(icon)
 
             child_1 = self.soup.new_tag('a')
             child_1['class'] = "nut-chuyen-trang"
             child_1['style'] = safe_a_style
-            if old_data_trang:
-                child_1['data-trang'] = old_data_trang
-            else:
-                child_1['data-trang'] = f"trang-con-{random.randint(10000, 99999)}"
+            child_1['data-trang'] = old_data_trang if old_data_trang else f"trang-con-{random.randint(10000, 99999)}"
             child_1['onclick'] = js_tab_switch
-            child_1.string = f"↳ a. {parent_name} (Original)"
+            child_1.string = f"↳ a. {parent_name} (Main)"
             target_folder.append(child_1)
-            
-            new_page_id = f"trang-con-{random.randint(10000, 99999)}"
-            child_2 = self.soup.new_tag('a')
-            child_2['class'] = ["nut-chuyen-trang", "menu-dang-chon"]
-            child_2['style'] = safe_a_style
-            child_2['data-trang'] = new_page_id
-            child_2['onclick'] = js_tab_switch
-            child_2.string = "↳ b. New Sub-item"
-            target_folder.append(child_2)
-            
-            msg = "📘 The Category has been turned into a Book Cover, inheriting the old content and creating an empty item b.!"
 
-            child_count = len([c for c in target_folder.children if c.name == 'a'])
-            char_prefix = chr(97 + child_count) if child_count < 26 else str(child_count + 1)
-            new_page_id = f"trang-con-{random.randint(10000, 99999)}"
-            
             new_child = self.soup.new_tag('a')
             new_child['class'] = ["nut-chuyen-trang", "menu-dang-chon"]
             new_child['style'] = safe_a_style
             new_child['data-trang'] = new_page_id
             new_child['onclick'] = js_tab_switch
-            new_child.string = f"↳ {char_prefix}. New Sub-item"
+            new_child.string = "↳ b. New sub-item"
+            target_folder.append(new_child)
+            
+            msg = "📘 Converted Category into a folder header, keeping old content and creating a new empty sub-item (b)!"
+
+        else:
+            sample_child = target_folder.find('a')
+            if sample_child:
+                new_child = self.clone_node(sample_child)
+            else:
+                new_child = self.soup.new_tag('a')
+                new_child['style'] = safe_a_style
+
+            cls = new_child.get('class', [])
+            if isinstance(cls, str): cls = [cls]
+            if 'menu-dang-chon' in cls: cls.remove('menu-dang-chon')
+            if 'nut-chuyen-trang' not in cls: cls.append('nut-chuyen-trang')
+            cls.append('menu-dang-chon')
+            new_child['class'] = cls
+            
+            new_child['data-trang'] = new_page_id
+            new_child['onclick'] = js_tab_switch
+            
+            child_count = len([c for c in target_folder.children if c.name == 'a'])
+            char_prefix = chr(97 + child_count) if child_count < 26 else str(child_count + 1)
+            new_child.string = f"↳ {char_prefix}. New sub-item"
+            
             target_folder.append(new_child)
 
             folder_cls = target_folder.get('class', [])
             if isinstance(folder_cls, str): folder_cls = [folder_cls]
-            if 'mo-ra' not in folder_cls:
-                folder_cls.append('mo-ra')
+            if 'mo-ra' not in folder_cls: folder_cls.append('mo-ra')
             target_folder['class'] = folder_cls
+            target_folder['style'] = str(target_folder.get('style', '')).replace('display: none', 'display: block')
             
-            target_folder['style'] = "display: block; margin-left: 15px; padding-left: 10px; border-left: 1px solid #2a3441; margin-bottom: 10px;"
-            msg = f"📥 Sub-item ({char_prefix}) added to the existing category!"
-
+            msg = "📥 Inserted 1 Sub-item into the existing menu!"
 
         for old_btn in self.soup.find_all(class_='menu-dang-chon'):
-            if old_btn.get('data-trang') == new_page_id: continue 
+            if old_btn == new_child: continue 
             cls = old_btn.get('class', [])
             if isinstance(cls, str): cls = [cls]
             if 'menu-dang-chon' in cls:
@@ -3793,7 +3870,7 @@ class UniversalHTMLEditor(QMainWindow):
         
         title = self.soup.new_tag('h2')
         title['class'] = "tieu-de-muc"
-        title.string = f"{parent_name} > Workspace"
+        title.string = "Workspace: New Sub-item"
         new_page.append(title)
         
         box = self.soup.new_tag('div')
@@ -3806,7 +3883,7 @@ class UniversalHTMLEditor(QMainWindow):
         box.append(desc)
         
         desc2 = self.soup.new_tag('p')
-        desc2.string = "This area has been created independently. Click to select this frame, then Right-click -> Insert Tag to design it."
+        desc2.string = "This page is linked 1-1 with the sub-item you just created. Drag and drop elements or tables here."
         box.append(desc2)
         new_page.append(box)
 
@@ -3814,19 +3891,16 @@ class UniversalHTMLEditor(QMainWindow):
             existing_pages[-1].insert_after(new_page)
         else:
             main_content = self.soup.find(class_='vung-noi-dung-chinh') or self.soup.find('main') or self.soup.find(class_='content-area') or self.soup.find(class_='main-content')
-            if main_content:
-                main_content.append(new_page)
+            if main_content: main_content.append(new_page)
             else:
                 body = self.soup.find('body')
                 footer = self.soup.find('footer')
-                if footer:
-                    footer.insert_before(new_page)
-                else:
-                    body.append(new_page)
+                if footer: footer.insert_before(new_page)
+                else: body.append(new_page)
 
         self.refresh_tree()
         self.update_preview()
-        
+
         js_sync = f"""
         (function() {{
             document.querySelectorAll('.trang-noi-dung').forEach(el => {{ el.classList.remove('trang-dang-hien-thi'); el.style.display='none'; }});
@@ -3850,10 +3924,9 @@ class UniversalHTMLEditor(QMainWindow):
         existing_files = [f for f in os.listdir(new_dir) if f.lower().endswith('.html')]
         idx = len(existing_files) + 1
         date_str = datetime.datetime.now().strftime("%d%m%Y")
-        
+
         filename = f"{idx:04d}_{date_str}_Detail.html"
         filepath = os.path.join(new_dir, filename)
-
         blank_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -3864,8 +3937,8 @@ class UniversalHTMLEditor(QMainWindow):
 <body style="min-height: 100vh; margin: 0; padding: 20px; font-family: sans-serif; background-color: #0f111a; color: #ffffff;">
     <div style="max-width: 1000px; margin: 0 auto; background-color: #161925; border: 1px solid #232736; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
         <a href="javascript:history.back()" style="display: inline-block; margin-bottom: 20px; color: #00d2ff; text-decoration: none; font-weight: bold;">⬅ Back to previous page</a>
-        <h1 style="color: #00d2ff; margin-top: 0;">Detail Content...</h1>
-        <p style="color: #aaa; line-height: 1.6;">You can drag and drop a Table, Layout, or Text in here to design the info page.</p>
+        <h1 style="color: #00d2ff; margin-top: 0;">Detailed Content...</h1>
+        <p style="color: #aaa; line-height: 1.6;">You can drag and drop tables, layouts, or text here to design the page.</p>
     </div>
 </body>
 </html>"""
@@ -3874,24 +3947,23 @@ class UniversalHTMLEditor(QMainWindow):
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(blank_html)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Could not create destination page:\n{str(e)}")
+            QMessageBox.critical(self, "Error", f"Cannot create destination page:\n{str(e)}")
             return
 
         rel_path = f"New_html/{filename}"
-        
+
         if t.name == 'button':
             t.name = 'a'
             t['href'] = rel_path
-            msg = f"🔗 Button transformed into a Link, pointing to: {filename}"
+            msg = f"🔗 Converted Button to Link targeting: {filename}"
         elif t.name == 'a':
             t['href'] = rel_path
-            msg = f"🔗 Link updated, pointing to: {filename}"
+            msg = f"🔗 Updated Link targeting: {filename}"
         else:
-
             new_a = self.soup.new_tag('a', href=rel_path)
             new_a['style'] = "text-decoration: none; color: inherit; display: block;"
             t.wrap(new_a)
-            msg = f"🔗 Link tag wrapped around the outside, pointing to: {filename}"
+            msg = f"🔗 Wrapped a Link targeting: {filename}"
             t = new_a 
             
         self.refresh_tree()
@@ -3900,11 +3972,10 @@ class UniversalHTMLEditor(QMainWindow):
         new_id = str(id(t))
         if new_id in self.node_map: self.select_tree_item_by_id(new_id)
         self.statusBar().showMessage(msg, 5000)
-        
-        reply = QMessageBox.question(self, "Navigate to page", f"Destination page created: {filename} and link attached successfully!\n\nWould you like to open that page now to design its content?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        reply = QMessageBox.question(self, "Navigate Page", f"Created target page: {filename} and linked successfully!\n\nDo you want to open that page now to edit its content?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         
         if reply == QMessageBox.StandardButton.Yes:
-
             if self.current_file_path:
                 self.execute_save(self.current_file_path)
 
@@ -3912,7 +3983,7 @@ class UniversalHTMLEditor(QMainWindow):
 
     def create_collapsible_content(self, item, t):
         if hasattr(self, 'check_locked') and t.get('data-locked') == 'true':
-            QMessageBox.information(self, "Quick Tip", "This button is Locked, so the Tool will smartly place a Hidden Content Block right below the button so as not to break your CSS structure!")
+            QMessageBox.information(self, "Tip", "This button is Locked. The tool will intelligently place the Collapsible Content Block immediately below it to protect your CSS structure!")
 
         self.save_state_for_undo()
         import random
@@ -3920,7 +3991,7 @@ class UniversalHTMLEditor(QMainWindow):
         box_id = f"collapse_box_{random.randint(10000, 99999)}"
         hidden_box = self.soup.new_tag('div', id=box_id)
         hidden_box['style'] = "display: block; padding: 20px; margin-top: 5px; margin-bottom: 15px; background-color: rgba(150,150,150,0.05); border-left: 3px solid #ff9800; border-radius: 4px; width: 100%; box-sizing: border-box;"
-        hidden_box.string = "Hidden content block... (Click the item above to Toggle this block). Drag and drop other tags in here!"
+        hidden_box.string = "Collapsible content block... (Click the item above to Toggle this block). Drag and drop other elements inside!"
         
         current_style = str(t.get('style', ''))
         if 'cursor: pointer' not in current_style:
@@ -3934,7 +4005,7 @@ class UniversalHTMLEditor(QMainWindow):
         
         new_id = str(id(hidden_box))
         if new_id in self.node_map: self.select_tree_item_by_id(new_id)
-        self.statusBar().showMessage("🔽 Hidden content block created successfully! On the live website, clicking the item above will Toggle this block.", 7000)
+        self.statusBar().showMessage("🔽 Created Collapsible Content block! On the live webpage, clicking the element above will Toggle this block.", 7000)
 
     def insert_inner_pagination(self, item, t):
         self.save_state_for_undo()
@@ -3942,7 +4013,7 @@ class UniversalHTMLEditor(QMainWindow):
         from PySide6.QtWidgets import QMessageBox
 
         if hasattr(self, 'check_locked') and t.get('data-locked') == 'true':
-            QMessageBox.warning(self, "CSS Protection", "This block is currently 🔒 LOCKED. Cannot insert Pagination inside it!")
+            QMessageBox.warning(self, "CSS Protection", "This block is 🔒 LOCKED. Cannot insert internal pagination inside!")
             return
 
         pag_id = f"inner-pag-{random.randint(10000, 99999)}"
@@ -3953,7 +4024,7 @@ class UniversalHTMLEditor(QMainWindow):
         <div class="pagination-wrapper" style="width:100%; margin:20px 0; border: 1px dashed rgba(150,150,150,0.5); padding: 15px; border-radius: 8px; box-sizing: border-box;">
             <div id="{pag_id}-1" class="phan-trang-noi-dung" style="display:block; min-height:150px; width:100%; margin-bottom:20px;">
                 <h3 style="margin-top:0; color:#007acc;">Page 1 Content (Internal)</h3>
-                <p style="opacity:0.7;">Drag and drop Text, Table, Image... in here.</p>
+                <p style="opacity:0.7;">Drag and drop text, tables, images... here.</p>
             </div>
             <div id="{pag_id}-2" class="phan-trang-noi-dung" style="display:none; min-height:150px; width:100%; margin-bottom:20px;">
                 <h3 style="margin-top:0; color:#007acc;">Page 2 Content (Internal)</h3>
@@ -3970,8 +4041,7 @@ class UniversalHTMLEditor(QMainWindow):
                 <a class="nav-phan-trang" data-action="last" onclick="{js_pag_switch}" style="padding:8px 12px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;">&raquo;</a>
             </div>
         </div>
-        '''
-        
+        ''' 
         new_soup = self.parse_html(html)
         pag_node = new_soup.find(class_='pagination-wrapper')
         
@@ -3985,10 +4055,9 @@ class UniversalHTMLEditor(QMainWindow):
         if new_id in self.node_map:
             self.select_tree_item_by_id(new_id)
             
-        self.statusBar().showMessage("🔢 Internal Pagination block inserted successfully!", 5000)
+        self.statusBar().showMessage("🔢 Inserted Internal Pagination component successfully!", 5000)
 
     def check_locked(self, t):
-
         curr = t
         while curr and curr.name not in ['body', 'html']:
             if curr.get('data-locked') == 'true': return True
@@ -3999,10 +4068,10 @@ class UniversalHTMLEditor(QMainWindow):
         self.save_state_for_undo()
         if t.get('data-locked') == 'true':
             del t['data-locked']
-            msg = "🔓 UNLOCKED! You can now freely insert more structure inside."
+            msg = "🔓 UNLOCKED! You can now freely insert elements inside."
         else:
             t['data-locked'] = 'true'
-            msg = "🔒 LOCKED FOR PROTECTION! Absolutely prevents inserting child tags that would break this button's CSS."
+            msg = "🔒 STRUCTURE LOCKED! Preventing child insertion to safeguard CSS layout."
         
         self.refresh_tree()
         self.update_preview()
@@ -4012,34 +4081,34 @@ class UniversalHTMLEditor(QMainWindow):
 
     def attach_safe_link(self, item, t):
         from PySide6.QtWidgets import QInputDialog
-        
-        url, ok = QInputDialog.getText(self, "Attach Safe Link (Prevents breaking layout)", "Enter the Web URL or File name to download:\n(E.g.: https://google.com or document.pdf)")
+
+        url, ok = QInputDialog.getText(self, "Attach Safe Link (Preserve layout)", "Enter web URL or filename to download:\n(Example: https://google.com or document.pdf)")
         
         if ok and url:
             self.save_state_for_undo()
-            
+
             t['onclick'] = f"window.open('{url.strip()}', '_blank');"
-            
+
             st = str(t.get('style', '')).strip()
             if 'cursor: pointer' not in st and 'cursor:pointer' not in st:
                 t['style'] = st.strip(';') + ("; " if st else "") + "cursor: pointer;"
                 
             self.refresh_tree()
             self.update_preview()
-            
+
             new_id = str(id(t))
             if new_id in self.node_map: self.select_tree_item_by_id(new_id)
             
-            self.statusBar().showMessage(f"🧲 Link silently attached to tag <{t.name}>! The button remains 100% intact.", 6000)
+            self.statusBar().showMessage(f"🧲 Successfully attached hidden link to <{t.name}>! Button structure remains 100% intact.", 6000)
 
     def edit_raw_html(self, item, t):
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout, QMessageBox
         import copy
         
         self.save_state_for_undo()
-        
+
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"🛠️ Edit HTML Directly: <{t.name}>")
+        dialog.setWindowTitle(f"🛠️ Edit Raw HTML: <{t.name}>")
         dialog.resize(900, 600)
         dialog.setStyleSheet("""
             QDialog { background-color: #1e1e1e; } 
@@ -4060,23 +4129,24 @@ class UniversalHTMLEditor(QMainWindow):
             border-radius: 6px;
         """)
         editor.setAcceptRichText(False)
-        editor.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap) 
+        editor.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+
         highlighter = HTMLHighlighter(editor.document())
-        
+
         temp_t = copy.copy(t)
         eid = temp_t.get('data-editor-id')
         if 'data-editor-id' in temp_t.attrs: del temp_t['data-editor-id']
         if 'class' in temp_t.attrs and 'editor-highlight' in temp_t['class']:
             temp_t['class'].remove('editor-highlight')
             if not temp_t['class']: del temp_t['class']
-            
+
         pretty_html = temp_t.prettify()
         editor.setPlainText(pretty_html)
         
         layout.addWidget(editor)
         
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("💾 SAVE AND OVERWRITE THIS TAG")
+        btn_save = QPushButton("💾 SAVE AND OVERWRITE THIS ELEMENT")
         btn_save.setStyleSheet("background-color: #28a745; font-size: 15px;")
         
         btn_cancel = QPushButton("Cancel")
@@ -4093,7 +4163,7 @@ class UniversalHTMLEditor(QMainWindow):
             if not new_html:
                 QMessageBox.warning(dialog, "Error", "HTML code cannot be empty!")
                 return
-            
+
             new_soup = self.parse_html(new_html)
             new_elements = [e for e in (new_soup.body or new_soup).children if isinstance(e, Tag)]
             
@@ -4102,13 +4172,13 @@ class UniversalHTMLEditor(QMainWindow):
                 return
                 
             new_t = new_elements[0]
-            
+
             if eid: new_t['data-editor-id'] = eid
-            
+
             t.replace_with(new_t)
-            
+
             self.refresh_tree()
-            
+
             import base64
             b64_html = base64.b64encode(str(new_t).encode('utf-8')).decode('utf-8')
             js = f"""
@@ -4126,11 +4196,11 @@ class UniversalHTMLEditor(QMainWindow):
             }})();
             """
             self.web_view.page().runJavaScript(js)
-            
+
             if eid and eid in self.node_map:
                 self.select_tree_item_by_id(eid)
                 
-            self.statusBar().showMessage("✅ HTML code overwritten directly, successfully!", 5000)
+            self.statusBar().showMessage("✅ Successfully overwrote raw HTML code!", 5000)
             dialog.accept()
             
         btn_save.clicked.connect(save_html)
@@ -4138,7 +4208,7 @@ class UniversalHTMLEditor(QMainWindow):
 
     def add_hover_effect(self, item, t):
         self.save_state_for_undo()
-        
+
         head = self.soup.find('head')
         if not head:
             head = self.soup.new_tag('head')
@@ -4148,35 +4218,27 @@ class UniversalHTMLEditor(QMainWindow):
         if not self.soup.find(id=effect_style_id):
             style_tag = self.soup.new_tag('style', id=effect_style_id)
             style_tag.string = """
-            /* 1. Scale Up & Lift */
             .hover-scale { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease !important; }
             .hover-scale:hover { transform: translateY(-5px) scale(1.03) !important; box-shadow: 0 15px 25px rgba(0,0,0,0.2) !important; z-index: 10; }
-            
-            /* 2. Glow */
+
             .hover-glow { transition: all 0.3s ease !important; }
             .hover-glow:hover { box-shadow: 0 0 15px #00d2ff, 0 0 30px #00d2ff !important; border-color: #00d2ff !important; z-index: 10; }
-            
-            /* 3. Fade */
+
             .hover-opacity { transition: opacity 0.3s ease !important; }
             .hover-opacity:hover { opacity: 0.6 !important; }
-            
-            /* 4. Multicolor Neon Glow */
+
             .hover-neon { transition: all 0.3s ease !important; }
             .hover-neon:hover { box-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff, 0 0 30px #00ff00 !important; border-color: #fff !important; z-index: 10; }
-            
-            /* 5. 3D Tilt */
+
             .hover-tilt { transition: transform 0.4s ease, box-shadow 0.4s ease !important; }
             .hover-tilt:hover { transform: perspective(1000px) rotateX(8deg) rotateY(-8deg) scale(1.02) !important; box-shadow: -10px 10px 20px rgba(0,0,0,0.3) !important; z-index: 10; }
-            
-            /* 6. Attention-grabbing Shake (Wiggle) */
+
             @keyframes hoverWiggle { 0% {transform: rotate(0deg);} 25% {transform: rotate(-3deg);} 50% {transform: rotate(3deg);} 75% {transform: rotate(-3deg);} 100% {transform: rotate(0deg);} }
             .hover-wiggle:hover { animation: hoverWiggle 0.4s ease-in-out infinite !important; z-index: 10; }
-            
-            /* 7. Grayscale -> Color (For images) */
+
             .hover-color { filter: grayscale(100%) !important; transition: filter 0.5s ease, transform 0.3s ease !important; }
             .hover-color:hover { filter: grayscale(0%) !important; transform: scale(1.02) !important; }
-            
-            /* 8. Expanded Border Outline (Outline Offset) */
+
             .hover-outline { transition: outline-offset 0.3s ease, outline-color 0.3s ease !important; outline: 2px solid transparent !important; outline-offset: 0px !important; }
             .hover-outline:hover { outline-color: #00d2ff !important; outline-offset: 8px !important; }
             """
@@ -4184,46 +4246,46 @@ class UniversalHTMLEditor(QMainWindow):
             
         from PySide6.QtWidgets import QInputDialog
         items = [
-            "1. Scale Up & Lift (Scale & Shadow)", 
+            "1. Scale Up & Float (Scale & Shadow)", 
             "2. Blue Border Glow (Glow)", 
-            "3. Fade (Opacity)",
-            "4. 🌈 Multicolor Neon Glow (Neon)",
-            "5. 🧊 3D Tilt (3D Tilt)",
-            "6. 🔔 Attention-grabbing Shake (Wiggle)",
-            "7. 🎨 Grayscale -> Color (For Images)",
-            "8. 🔲 Expanded Border Outline (Outline Offset)"
+            "3. Fade Out (Opacity)",
+            "4. 🌈 Multi-color Neon Glow (Neon)",
+            "5. 🧊 3D Tilt Effect",
+            "6. 🔔 Wiggle Attention (Wiggle)",
+            "7. 🎨 Grayscale -> Color (Best for Images)",
+            "8. 🔲 Expanding Outline (Outline Offset)"
         ]
-        effect, ok = QInputDialog.getItem(self, "Select Effect", "When hovering the mouse over this tag, it will:", items, 0, False)
+        effect, ok = QInputDialog.getItem(self, "Select Hover Effect", "When mouse hovers over this element:", items, 0, False)
         
         if ok and effect:
             classes = t.get('class', [])
             if isinstance(classes, str): classes = [classes]
-            
+
             all_hover_classes = ['hover-scale', 'hover-glow', 'hover-opacity', 'hover-neon', 'hover-tilt', 'hover-wiggle', 'hover-color', 'hover-outline']
             classes = [c for c in classes if c not in all_hover_classes]
             
             if "Scale Up" in effect: classes.append("hover-scale")
             elif "Blue Border Glow" in effect: classes.append("hover-glow")
-            elif "Fade" in effect: classes.append("hover-opacity")
+            elif "Fade Out" in effect: classes.append("hover-opacity")
             elif "Neon" in effect: classes.append("hover-neon")
             elif "3D Tilt" in effect: classes.append("hover-tilt")
-            elif "Shake" in effect: classes.append("hover-wiggle")
+            elif "Wiggle" in effect: classes.append("hover-wiggle")
             elif "Grayscale" in effect: classes.append("hover-color")
-            elif "Border Outline" in effect: classes.append("hover-outline")
+            elif "Expanding Outline" in effect: classes.append("hover-outline")
             
             t['class'] = classes
             self.refresh_tree()
             self.update_preview()
-            self.statusBar().showMessage(f"✨ Gorgeous Hover effect applied to tag <{t.name}>!", 4000)
+            self.statusBar().showMessage(f"✨ Applied hover effect to <{t.name}>!", 4000)
 
     def make_collapsible_menu(self, item, t):
         self.save_state_for_undo()
-        
+
         next_sibling = t.find_next_sibling()
         
         if not next_sibling or 'sub-menu-folder' not in next_sibling.get('class', []):
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(self, "Sub-item Not Found", "There is no Sub-item Folder directly below this item yet.\n\nPlease use the 'Add Sub-item (Sub-menu Folder)' feature first, before enabling this Collapse/Expand function.")
+            QMessageBox.warning(self, "Sub-menu Folder Not Found", "No Sub-menu folder found below this item.\n\nPlease use 'Add Sub-menu Item to Menu' first before toggling collapsible functionality.")
             return
             
         folder_id = next_sibling.get('id')
@@ -4231,13 +4293,13 @@ class UniversalHTMLEditor(QMainWindow):
             import random
             folder_id = f"sub_folder_{random.randint(1000, 9999)}"
             next_sibling['id'] = folder_id
-            
+
         st_folder = str(next_sibling.get('style', ''))
         if 'display: none' not in st_folder:
             next_sibling['style'] = st_folder.replace('display: flex;', 'display: none;') + (";" if not st_folder.endswith(';') else "")
-            
+
         t['onclick'] = f"var folder = document.getElementById('{folder_id}'); var icon = this.querySelector('.dropdown-icon'); if(folder.style.display === 'none') {{ folder.style.display = 'flex'; if(icon) icon.style.transform = 'rotate(0deg)'; }} else {{ folder.style.display = 'none'; if(icon) icon.style.transform = 'rotate(-90deg)'; }}"
-        
+
         icon = t.find('span', class_='dropdown-icon')
         if icon:
             icon_st = str(icon.get('style', ''))
@@ -4245,20 +4307,19 @@ class UniversalHTMLEditor(QMainWindow):
             
         self.refresh_tree()
         self.update_preview()
-        self.statusBar().showMessage("↕️ Collapse/Expand (Dropdown) feature enabled successfully!", 5000)
-
+        self.statusBar().showMessage("↕️ Enabled Collapse/Expand (Dropdown) functionality!", 5000)
 
     def add_pagination_page(self, pag_container):
         self.save_state_for_undo()
         import random
-        
+
         wrapper = pag_container.parent
         if not wrapper or wrapper.name in ['body', 'html'] or 'pagination-wrapper' not in wrapper.get('class', []):
             wrapper = pag_container.find_parent(class_='pagination-wrapper')
             
         if not wrapper:
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(self, "Structure Error", "This pagination block is not inside a Wrapper Frame (pagination-wrapper). Please use the new Pagination template from the Library!")
+            QMessageBox.warning(self, "Structure Error", "This pagination block is not inside a wrapper container (pagination-wrapper). Please use a pagination template from the Library!")
             return
 
         page_links = wrapper.find_all('a', class_='nut-phan-trang')
@@ -4266,7 +4327,7 @@ class UniversalHTMLEditor(QMainWindow):
         next_num = current_count + 1
         
         new_page_id = f"sub-page-pagin-{random.randint(10000, 99999)}"
-        
+
         base_btn_style = "padding:8px 15px; background:transparent; border:1px solid rgba(150,150,150,0.3); color:inherit; text-decoration:none; border-radius:4px; font-weight:bold; cursor:pointer;"
         active_bg = "#007acc"
         disp = "inline-block"
@@ -4275,7 +4336,7 @@ class UniversalHTMLEditor(QMainWindow):
             base_btn_style = st.replace('box-shadow', 'no-shadow').replace('background:#007acc', 'background:transparent').replace('color:#fff', 'color:inherit').replace('background:#28a745', 'background:transparent')
             active_bg = page_links[0].get('data-active-bg', '#007acc')
             disp = page_links[0].get('data-disp', 'inline-block')
-        
+
         js_pag_switch = "var p=this.closest('.pagination-wrapper');var act=this.getAttribute('data-action');var pId=this.getAttribute('data-page');var pgs=Array.from(p.querySelectorAll('.phan-trang-noi-dung'));var btns=Array.from(p.querySelectorAll('.nut-phan-trang'));var cIdx=pgs.findIndex(x=>x.style.display==='block');if(cIdx<0)cIdx=0;var nIdx=cIdx;if(act==='first')nIdx=0;if(act==='last')nIdx=pgs.length-1;if(act==='prev')nIdx=Math.max(0,cIdx-1);if(act==='next')nIdx=Math.min(pgs.length-1,cIdx+1);if(pId)nIdx=pgs.findIndex(x=>x.id===pId);if(nIdx<0)return;pgs.forEach((el,i)=>el.style.display=(i===nIdx)?'block':'none');p.querySelectorAll('.pag-dots').forEach(d=>d.remove());var aBg=btns.length>0?(btns[0].getAttribute('data-active-bg')||'#007acc'):'#007acc';btns.forEach((b,i)=>{if(i===nIdx){b.style.background=aBg;b.style.color='#fff';b.style.boxShadow='0 0 10px '+aBg;}else{b.style.background='transparent';b.style.color='inherit';b.style.boxShadow='none';}var disp=b.getAttribute('data-disp')||'inline-block';if(btns.length>5){if(i===0||i===btns.length-1||(i>=nIdx-1&&i<=nIdx+1)){b.style.display=disp;if(i===nIdx-1&&i>1){var d1=document.createElement('span');d1.className='pag-dots';d1.innerHTML='...';d1.style.padding='0 5px';b.parentNode.insertBefore(d1,b);}if(i===btns.length-1&&nIdx<btns.length-3){var d2=document.createElement('span');d2.className='pag-dots';d2.innerHTML='...';d2.style.padding='0 5px';b.parentNode.insertBefore(d2,b);}}else{b.style.display='none';}}else{b.style.display=disp;}});"
 
         new_btn = self.soup.new_tag('a')
@@ -4286,13 +4347,13 @@ class UniversalHTMLEditor(QMainWindow):
         new_btn['style'] = base_btn_style
         new_btn['onclick'] = js_pag_switch
         new_btn.string = str(next_num)
-        
+
         btn_container = wrapper.find(class_='pagination') or pag_container
         if page_links:
             page_links[-1].insert_after(new_btn)
         else:
             btn_container.append(new_btn)
-            
+
         new_content_div = self.soup.new_tag('div', id=new_page_id)
         new_content_div['class'] = ["phan-trang-noi-dung"]
         new_content_div['style'] = f"display: none; min-height: 150px; border: 2px dashed {active_bg}; padding: 20px; border-radius: 8px; margin-bottom: 20px; width: 100%; box-sizing: border-box;"
@@ -4303,7 +4364,7 @@ class UniversalHTMLEditor(QMainWindow):
         new_content_div.append(title)
         
         desc = self.soup.new_tag('p')
-        desc.string = f"Empty area of page {next_num}. Drag and drop content or insert a table in here."
+        desc.string = f"Empty area for page {next_num}. Drag and drop elements or tables here."
         new_content_div.append(desc)
 
         btn_container.insert_before(new_content_div)
@@ -4317,7 +4378,7 @@ class UniversalHTMLEditor(QMainWindow):
         new_id = str(id(new_content_div))
         if new_id in self.node_map: self.select_tree_item_by_id(new_id)
         
-        self.statusBar().showMessage(f"📄 Page {next_num} generated safely! (Automatically collapses to ... once past 5 pages)", 4000)
+        self.statusBar().showMessage(f"📄 Created Page {next_num}! (Auto collapses to ellipsis '...' when exceeding 5 pages)", 4000)
 
     def add_blank_page_to_menu(self, item, t):
         from PySide6.QtWidgets import QMessageBox
@@ -4328,7 +4389,7 @@ class UniversalHTMLEditor(QMainWindow):
             if a_tag: target_btn = a_tag
 
         if 'pagination' in target_btn.get('class', []) or target_btn.find_parent(class_='pagination-wrapper') or target_btn.find_parent(class_='pagination') or 'nut-phan-trang' in target_btn.get('class', []):
-            QMessageBox.warning(self, "Structure Protection", "The Pagination area already has its own separate page-switching algorithm (collapsing ...).\nAbsolutely do not use the 'Create Blank Page' function here, to avoid overwriting and breaking the Pagination set!")
+            QMessageBox.warning(self, "Structure Protection", "Pagination areas have dedicated page switching algorithms (with ellipsis ellipsis).\nDo not use 'Create Blank Tab Page' here as it will overwrite and break pagination!")
             return
             
         self.save_state_for_undo()
@@ -4362,7 +4423,7 @@ class UniversalHTMLEditor(QMainWindow):
         new_page.append(title)
 
         desc = self.soup.new_tag('p')
-        desc.string = "The new content page area has been linked to the button you just selected. Drag and drop tags from the library in here to design it."
+        desc.string = "This new content page has been linked to your selected button. Drag and drop components from the library here to design."
         new_page.append(desc)
 
         for el in self.soup.find_all(class_='trang-noi-dung'):
@@ -4399,7 +4460,7 @@ class UniversalHTMLEditor(QMainWindow):
         new_id = str(id(new_page))
         if new_id in self.node_map: self.select_tree_item_by_id(new_id)
         
-        self.statusBar().showMessage(f"📄 Blank Page created and successfully linked to button: {parent_name}!", 6000)
+        self.statusBar().showMessage(f"📄 Created a blank page linked to button: {parent_name}!", 6000)
 
     def add_sibling_category(self, item, t):
         self.save_state_for_undo()
@@ -4416,7 +4477,7 @@ class UniversalHTMLEditor(QMainWindow):
 
         if not target or target.name in ['body', 'html']:
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(self, "Error", "Cannot add a sibling category at this position.")
+            QMessageBox.warning(self, "Error", "Cannot add sibling category at this location.")
             return
 
         new_cat = self.clone_node(target)
@@ -4432,7 +4493,7 @@ class UniversalHTMLEditor(QMainWindow):
         text_nodes = list(new_cat.find_all(string=True))
         for s in text_nodes:
             if s.strip() and s.strip() != '/':
-                s.replace_with("New category")
+                s.replace_with("New Category")
                 break
 
         if is_breadcrumb:
@@ -4450,11 +4511,11 @@ class UniversalHTMLEditor(QMainWindow):
         new_id = str(id(new_cat))
         if new_id in self.node_map: self.select_tree_item_by_id(new_id)
         
-        self.statusBar().showMessage("➖ Sibling Category added!", 4000)
+        self.statusBar().showMessage("➖ Added sibling category!", 4000)
 
     def copy_element(self, item, t): 
         self.clipboard_node = self.clone_node(t)
-        self.statusBar().showMessage(f"📋 Tag <{t.name}> copied to clipboard!", 3000)
+        self.statusBar().showMessage(f"📋 Copied <{t.name}> to temporary clipboard!", 3000)
 
     def cut_element(self, item, t):
         self.save_state_for_undo()
@@ -4462,12 +4523,12 @@ class UniversalHTMLEditor(QMainWindow):
         t.decompose()
         self.refresh_tree()
         self.update_preview()
-        self.statusBar().showMessage(f"✂️ Tag <{t.name}> cut!", 3000)
+        self.statusBar().showMessage(f"✂️ Cut <{t.name}>!", 3000)
 
     def paste_element(self, item, t, mode):
         if not self.clipboard_node: return
         self.save_state_for_undo()
-        pt = self.clone_node(self.clipboard_node) # Clone again from clipboard so it can be pasted multiple times
+        pt = self.clone_node(self.clipboard_node)
         if mode == "inside": t.append(pt)
         else: t.insert_after(pt)
         self.refresh_tree()
@@ -4475,12 +4536,12 @@ class UniversalHTMLEditor(QMainWindow):
         self.statusBar().showMessage("📌 Pasted successfully!", 3000)
 
     def delete_html_element(self, item, t):
-        if QMessageBox.question(self, "Confirm Delete", f"Are you sure you want to delete tag <{t.name}>?") == QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, "Confirm Deletion", f"Are you sure you want to delete <{t.name}>?") == QMessageBox.StandardButton.Yes:
             self.save_state_for_undo()
             t.decompose()
             self.refresh_tree()
             self.update_preview()
-            self.statusBar().showMessage("🗑️ Object deleted!", 3000)
+            self.statusBar().showMessage("🗑️ Deleted element!", 3000)
 
     def search_dom_tree(self, text):
         if not self.tree.topLevelItemCount(): return
@@ -4488,133 +4549,218 @@ class UniversalHTMLEditor(QMainWindow):
         
         def search_recursive(item):
             match = False
+
             if query in item.text(0).lower(): match = True
-            
+
             child_match = False
             for i in range(item.childCount()):
                 if search_recursive(item.child(i)): child_match = True
-                
+
             item.setHidden(not (match or child_match))
-            
+
             if query and child_match: item.setExpanded(True)
             return match or child_match
 
         search_recursive(self.tree.topLevelItem(0))
-        
+
         if not query:
             self.tree.collapseAll()
             self.tree.topLevelItem(0).setExpanded(True)
 
     def simulate_device(self, mode):
-        pass
+        btn_active = "background: #007acc; padding: 5px 12px; border-radius: 4px; font-weight: bold; color: white;"
+        btn_inactive = "background: #4d4d4d; padding: 5px 12px; border-radius: 4px; font-weight: bold; color: white;"
+        
+        if mode == "mobile":
+            self.web_view.setMinimumWidth(414)
+            self.web_view.setMaximumWidth(414)
+
+            self.spacer_left.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            self.spacer_right.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            self.spacer_left.show()
+            self.spacer_right.show()
+
+            self.web_container.setStyleSheet("background-color: #050505;")
+            
+            self.btn_mobile.setStyleSheet(btn_active)
+            self.btn_desktop.setStyleSheet(btn_inactive)
+            self.statusBar().showMessage("📱 Viewing in Mobile mode (Simulating 414px width)", 4000)
+            
+        else:
+            self.web_view.setMinimumWidth(0)
+            self.web_view.setMaximumWidth(16777215)
+
+            self.spacer_left.hide()
+            self.spacer_right.hide()
+            
+            self.web_container.setStyleSheet("background-color: #111111;")
+            
+            self.btn_desktop.setStyleSheet(btn_active)
+            self.btn_mobile.setStyleSheet(btn_inactive)
+            self.statusBar().showMessage("🖥️ Viewing in Desktop mode (Full screen)", 4000)
 
     def change_zoom(self, zoom_str):
         try:
             user_zoom = float(zoom_str.replace('%', '')) / 100.0
-            
             dpi_scale = self.devicePixelRatioF()
-            
             true_zoom_factor = user_zoom / dpi_scale
             
             self.web_view.setZoomFactor(true_zoom_factor)
-            self.statusBar().showMessage(f"🔍 Web Zoom: {zoom_str} (Automatically compensated for Windows' {dpi_scale}x scaling)", 4000)
+            self.statusBar().showMessage(f"🔍 Web Zoom: {zoom_str} (Automatically offset for Windows {dpi_scale}x DPI)", 4000)
         except Exception:
             self.web_view.setZoomFactor(1.0)
             self.cb_zoom.setCurrentText("100%")
 
-
     def refresh_library(self):
-        from PySide6.QtWidgets import QListWidget
+        from PySide6.QtWidgets import QTreeWidgetItem
+        from PySide6.QtCore import Qt
+        
         comp_dir = os.path.join(BASE_DIR, 'components')
-        if not os.path.exists(comp_dir):
-            os.makedirs(comp_dir)
-            
+        if not os.path.exists(comp_dir): os.makedirs(comp_dir)
+
         if hasattr(self, 'list_library'):
             self.list_library.clear()
 
-            for f_name in os.listdir(comp_dir):
-                if f_name.lower().endswith(('.html', '.htm')):
-                    self.list_library.addItem(f_name)
-                    
-            self.statusBar().showMessage(f"📦 Loaded {self.list_library.count()} interface blocks from the components/ folder", 3000)
+            def build_tree(current_dir, parent_node):
+                items = sorted(os.listdir(current_dir))
+                folders = [i for i in items if os.path.isdir(os.path.join(current_dir, i))]
+                files = [i for i in items if os.path.isfile(os.path.join(current_dir, i))]
 
+                for folder in folders:
+                    folder_path = os.path.join(current_dir, folder)
+                    folder_item = QTreeWidgetItem(parent_node, [f"📂 {folder}"])
 
-    def insert_from_library(self):
-        item = self.list_library.currentItem()
-        if not item:
-            QMessageBox.warning(self, "No block selected", "Please select an HTML block from the list to insert!")
-            return
+                    build_tree(folder_path, folder_item)
+
+                for f in files:
+                    if f.lower().endswith(('.html', '.htm')):
+                        base_name = os.path.splitext(f)[0]
+                        file_path = os.path.join(current_dir, f)
+                        tree_item = QTreeWidgetItem(parent_node, [f"📦 {base_name}"])
+
+                        tree_item.setData(0, Qt.ItemDataRole.UserRole, file_path)
+
+            build_tree(comp_dir, self.list_library.invisibleRootItem())
+            self.list_library.expandAll()
+
+            try: self.list_library.itemDoubleClicked.disconnect()
+            except: pass
+            self.list_library.itemDoubleClicked.connect(self.insert_from_library)
             
-        html_filename = item.text()
-        base_name = os.path.splitext(html_filename)[0]
-        
-        html_path = os.path.join(BASE_DIR, 'components', html_filename)
-        css_path = os.path.join(BASE_DIR, 'components', f"{base_name}.css")
-        
+            self.statusBar().showMessage("📦 Reloaded Component Tree Library successfully!", 3000)
+
+    def insert_from_library(self, *args):
+        item = self.list_library.currentItem()
+            
+        if not item:
+            QMessageBox.warning(self, "No Item Selected", "Please select an HTML block (📦) from the list to insert!")
+            return
+
+        html_path = item.data(0, Qt.ItemDataRole.UserRole)
+
+        if not html_path:
+            QMessageBox.information(self, "Directory Selected", "You selected a folder 📂.\nPlease expand it and double-click an item 📦 inside to insert.")
+            return
+
+        base_dir = os.path.dirname(html_path)
+        base_name = os.path.splitext(os.path.basename(html_path))[0]
+
+        css_path = os.path.join(base_dir, f"{base_name}.css")
+        js_path = os.path.join(base_dir, f"{base_name}.js")
+
         try:
             with open(html_path, 'r', encoding='utf-8') as f:
                 final_content = f.read()
-            
-            has_css = False
+
+            has_css = False; has_js = False
+
             if os.path.exists(css_path):
                 with open(css_path, 'r', encoding='utf-8') as f:
                     css_content = f.read()
-                
                 if css_content.strip():
-                    final_content = f"<style>\n{css_content.strip()}\n</style>\n" + final_content
+                    final_content = f"<style /* comp-css: {base_name} */>\n{css_content.strip()}\n</style>\n" + final_content
                     has_css = True
-            
+
+            if os.path.exists(js_path):
+                with open(js_path, 'r', encoding='utf-8') as f:
+                    js_content = f.read()
+                if js_content.strip():
+                    safe_js = f"/* comp-js: {base_name} */\n(function(){{\n{js_content.strip()}\n}})();"
+                    final_content = final_content + f"\n<script>\n{safe_js}\n</script>"
+                    has_js = True
+
             self.insert_quick_component(final_content)
-            
-            if has_css:
-                self.statusBar().showMessage(f"✅ Inserted block [{html_filename}] + Automatically attached matching CSS!", 4000)
-            else:
-                self.statusBar().showMessage(f"✅ Inserted block [{html_filename}] (No accompanying CSS effect).", 4000)
+
+            msg = f"✅ Inserted block [{base_name}]"
+            if has_css and has_js: msg += " (With CSS & JS)"
+            elif has_css: msg += " (With CSS)"
+            elif has_js: msg += " (With JS)"
+
+            self.statusBar().showMessage(msg, 5000)
                 
         except Exception as e:
-            QMessageBox.critical(self, "File Read Error", f"Could not load this block:\n{str(e)}")
-
+            QMessageBox.critical(self, "File Read Error", f"Unable to load this component:\n{str(e)}")
 
     def show_template_gallery(self):
         self.view_stack.setCurrentIndex(1)
         
         tpl_dir = os.path.join(BASE_DIR, 'templates')
         os.makedirs(tpl_dir, exist_ok=True)
-        self.template_files = [f for f in os.listdir(tpl_dir) if f.lower().endswith(('.html', '.htm'))]
         
-        self.current_tpl_page = 0
-        self.update_gallery_ui()
+        self.tpl_tree.clear()
+        self.btn_use_tpl.setEnabled(False)
+        self.selected_tpl_path = None
+        self.lbl_tpl_info.setText("📌 Select a template on the left to preview")
 
-    def update_gallery_ui(self):
-        from PySide6.QtCore import QUrl
-        total_files = len(self.template_files)
-        total_pages = (total_files + 3) // 4
-        if total_pages == 0: total_pages = 1
-        
-        self.lbl_page_tpl.setText(f"Trang {self.current_tpl_page + 1} / {total_pages}")
-        self.btn_prev_tpl.setEnabled(self.current_tpl_page > 0)
-        self.btn_next_tpl.setEnabled(self.current_tpl_page < total_pages - 1)
-        
-        start_idx = self.current_tpl_page * 4
-        tpl_dir = os.path.join(BASE_DIR, 'templates')
-        
-        for i in range(4):
-            idx = start_idx + i
-            if idx < total_files:
-                file_name = self.template_files[idx]
-                file_path = os.path.join(tpl_dir, file_name)
+        def build_tpl_tree(current_dir, parent_node):
+            items = sorted(os.listdir(current_dir))
+            for item in items:
+                item_path = os.path.join(current_dir, item)
+                if os.path.isdir(item_path):
+                    index_file = os.path.join(item_path, 'index.html')
+                    if os.path.exists(index_file):
+                        item_node = QTreeWidgetItem(parent_node, [f"📑 {item}"])
+                        item_node.setData(0, Qt.ItemDataRole.UserRole, index_file)
+                    else:
+                        folder_node = QTreeWidgetItem(parent_node, [f"📂 {item}"])
+                        build_tpl_tree(item_path, folder_node)
+                        
+        build_tpl_tree(tpl_dir, self.tpl_tree.invisibleRootItem())
+        self.tpl_tree.expandAll()
 
-                self.mini_views[i].load(QUrl.fromLocalFile(file_path))
+    def on_tpl_tree_clicked(self, item, col):
+        index_path = item.data(0, Qt.ItemDataRole.UserRole)
+        if not index_path or not os.path.exists(index_path):
+            self.btn_use_tpl.setEnabled(False)
+            self.selected_tpl_path = None
+            self.lbl_tpl_info.setText("📂 Template directory. Expand it and click a template 📑 inside!")
+            return
+            
+        self.selected_tpl_path = index_path
+        self.btn_use_tpl.setEnabled(True)
+        
+        folder_dir = os.path.dirname(index_path)
+        tpl_name = os.path.basename(folder_dir)
 
-                try: self.mini_overlays[i].clicked.disconnect() 
-                except: pass
-                
-                self.mini_overlays[i].setText(file_name.replace('.html', '').upper())
-                self.mini_overlays[i].clicked.connect(lambda checked=False, p=file_path: self.load_template_file(p))
-                
-                self.mini_views[i].parent().show()
-            else:
-                self.mini_views[i].parent().hide()
+        thumb_path = ""
+        for ext in ['jpg', 'png', 'jpeg', 'webp']:
+            p = os.path.join(folder_dir, f"thumb.{ext}")
+            if os.path.exists(p):
+                thumb_path = p
+                break
+
+        if thumb_path:
+            img_url = QUrl.fromLocalFile(thumb_path).toString()
+            html_thumb = f"""
+            <body style='margin:0; background:#1e1e1e; display:flex; justify-content:center; align-items:center; height:100vh;'>
+                <img src='{img_url}' style='max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5);'>
+            </body>
+            """
+            self.tpl_preview.setHtml(html_thumb)
+            self.lbl_tpl_info.setText(f"📑 Previewing template: <b>{tpl_name}</b> (Thumbnail Image)")
+        else:
+            self.tpl_preview.load(QUrl.fromLocalFile(index_path))
+            self.lbl_tpl_info.setText(f"📑 Previewing live: <b>{tpl_name}</b> (Live Web Engine)")
 
     def prev_template_page(self):
         if self.current_tpl_page > 0:
@@ -4622,31 +4768,53 @@ class UniversalHTMLEditor(QMainWindow):
             self.update_gallery_ui()
 
     def next_template_page(self):
-        total_pages = (len(self.template_files) + 3) // 4
+        total_pages = (len(self.template_folders) + 3) // 4
         if self.current_tpl_page < total_pages - 1:
             self.current_tpl_page += 1
             self.update_gallery_ui()
             
+    def load_selected_template(self):
+        if not self.selected_tpl_path or not os.path.exists(self.selected_tpl_path):
+            QMessageBox.warning(self, "Error", "No valid template selected!")
+            return
+
+        if not self.check_and_save_if_dirty():
+            return
+            
+        self.load_template_file(self.selected_tpl_path)
+
     def load_template_file(self, filepath):
-
-        self.view_stack.setCurrentIndex(0) 
+        self.view_stack.setCurrentIndex(0)
         try:
-            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            abs_path = os.path.abspath(filepath)
+            with open(abs_path, 'r', encoding='utf-8', errors='ignore') as f:
                 self.soup = self.parse_html(f.read())
-
+            
             for s in self.soup.find_all('script'):
                 if not s.has_attr('src') and not s.has_attr('id') and s.string and "EDITOR_SCROLL" in s.string:
                     s.decompose()
                     
-            self.current_file_path = os.path.abspath(filepath)
+            self._legacy_warned = False
+            self.current_file_path = None 
+            self.current_base_dir = os.path.dirname(abs_path)
+            self.is_dirty = True
+            
             if hasattr(self, 'undo_stack'): self.undo_stack.clear()
             if hasattr(self, 'redo_stack'): self.redo_stack.clear()
             
-            self.lbl_current_file.setText(f"Viewing: <b>{os.path.basename(filepath)}</b>")
+            folder_name = os.path.basename(os.path.dirname(abs_path))
+            self.lbl_current_file.setText(f"Viewing: <b>Template: {folder_name} (Unsaved)</b>")
+            
             self.refresh_tree(); self.update_preview()
-            self.statusBar().showMessage("📑 Template interface loaded successfully!", 4000)
+            self.statusBar().showMessage("📑 Template loaded successfully! Press Ctrl+S to save the project locally.", 5000)
         except Exception as e:
-            QMessageBox.critical(self, "Template Load Error", f"Could not read template file:\n{str(e)}")
+            QMessageBox.critical(self, "Template Loading Error", f"Unable to read template directory:\n{str(e)}")
+
+    def closeEvent(self, event):
+        if self.check_and_save_if_dirty():
+            event.accept()
+        else:
+            event.ignore()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
